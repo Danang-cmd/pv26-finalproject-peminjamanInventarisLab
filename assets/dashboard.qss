@@ -1,0 +1,41 @@
+/* ==========================================
+   DASHBOARD.QSS
+   Digunakan oleh: DashboardPage (ui/dashboard.py)
+   ========================================== */
+
+/* --- LIGHT THEME (DEFAULT) --- */
+
+QWidget[theme="light"] {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+/* Summary Card */
+QLabel#DashboardSummary {
+    background-color: #ffffff;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+/* ==========================================
+   DARK THEME OVERRIDES
+   ========================================== */
+
+QWidget[theme="dark"] {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+QWidget[theme="dark"] QLabel#DashboardSummary {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+}
+
+QWidget[theme="dark"] QLabel {
+    color: #cbd5e1;
+}
