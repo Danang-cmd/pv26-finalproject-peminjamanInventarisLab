@@ -305,7 +305,6 @@ QMainWindow[theme="dark"] QMenu::separator {
     background-color: #334155;
 }
 
-
 /* ==========================================
    --- FIX UNTUK STATUS BAR ---
    ========================================== */
@@ -313,16 +312,22 @@ QStatusBar {
     font-size: 12px;
 }
 
-QMainWindow[theme="light"] QStatusBar,
-QMainWindow[theme="light"] QStatusBar QLabel {
-    background-color: #f8fafc;
-    color: #0f172a;
-    border-top: 1px solid #e2e8f0;
+/* Style khusus untuk label nama kelompok di pojok kanan bawah */
+QLabel#StatusLabel {
+    padding-right: 10px; /* Kasih space sedikit dari pojok kanan layar */
+    font-size: 11px;
 }
 
+/* Light Mode */
+QMainWindow[theme="light"] QStatusBar,
+QMainWindow[theme="light"] QLabel#StatusLabel {
+    background-color: #f8fafc;
+    color: #0f172a !important;
+}
+
+/* Dark Mode */
 QMainWindow[theme="dark"] QStatusBar,
-QMainWindow[theme="dark"] QStatusBar QLabel {
+QMainWindow[theme="dark"] QLabel#StatusLabel {
     background-color: #0f172a;
-    color: #f8fafc;
-    border-top: 1px solid #334155;
+    color: #f8fafc !important;
 }

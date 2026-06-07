@@ -31,21 +31,26 @@ class MainWindow(QMainWindow):
         toggle_theme_action.triggered.connect(self.toggle_theme)
         file_menu.addAction(toggle_theme_action)
 
-        # --- MENU HELP ---
+        # --- MENU HELP (Sekarang Berisi Dropdown) ---
         help_menu = menubar.addMenu("Help")
-        about_action = QAction("About", self)
-        about_action.triggered.connect(self.show_about) # Menghubungkan klik dengan fungsi
+        
+        # Membuat item "About" di dalam menu Help
+        about_action = QAction("About Application", self)
+        about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
         # --- TOMBOL EXIT (SEJAJAR DI MENU BAR) ---
-        # Menggunakan menubar.addAction secara langsung agar sejajar dengan File & Help
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
         menubar.addAction(exit_action)
 
-        # --- STATUS BAR (Update Nama & NIM) ---
-        # Mengganti teks bawaan menjadi nama anggota kelompok
-        self.statusBar().showMessage("Danang Adiwijaya (F1D02310044) | Wimar (F1D024000) | Bang Klisman (F1D022000)")
+        # --- STATUS BAR (POJOK KANAN BAWAH) ---
+        # Kita buat QLabel khusus agar teks bisa diatur posisinya dan di-style lewat QSS
+        self.status_label = QLabel("Danang Adiwijaya (F1D02310044) | Wimar (F1D024000) | Bang Klisman (F1D022000)")
+        self.status_label.setObjectName("StatusLabel")
+        
+        # permanent widget otomatis meletakkan widget di pojok kanan bawah
+        self.statusBar().addPermanentWidget(self.status_label)
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -136,22 +141,29 @@ class MainWindow(QMainWindow):
     def apply_theme(self):
         state = "dark" if self.is_dark_mode else "light"
         self.setProperty("theme", state)
-        
-        # Tambahkan baris ini agar QStatusBar juga tahu kalau temanya berubah
         self.statusBar().setProperty("theme", state)
+        
+        # Tambahkan ini agar label status bar baru juga ikut memperbarui temanya
+        if hasattr(self, 'status_label'):
+            self.status_label.setProperty("theme", state)
 
-        # Load Global Styles (Sidebar, Inputs, Buttons, Table)
+        # Load Global Styles
         try:
             with open("assets/global.qss", "r") as f:
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             pass
 
-        # FORCE REFRESH: Memaksa gaya MainWindow dan StatusBar untuk di-render ulang
+        # FORCE REFRESH
         self.style().unpolish(self)
         self.style().polish(self)
         self.statusBar().style().unpolish(self.statusBar())
         self.statusBar().style().polish(self.statusBar())
+        
+        # Refresh style untuk label status bar baru
+        if hasattr(self, 'status_label'):
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
 
         # Trigger Theme Update di masing-masing page
         self.page_dashboard.set_theme(state)
