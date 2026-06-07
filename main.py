@@ -23,17 +23,29 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         menubar = self.menuBar()
+
+        # --- MENU FILE ---
         file_menu = menubar.addMenu("File")
         
         toggle_theme_action = QAction("Toggle Dark/Light Mode", self)
         toggle_theme_action.triggered.connect(self.toggle_theme)
         file_menu.addAction(toggle_theme_action)
-        
+
+        # --- MENU HELP ---
+        help_menu = menubar.addMenu("Help")
+        about_action = QAction("About", self)
+        about_action.triggered.connect(self.show_about) # Menghubungkan klik dengan fungsi
+        help_menu.addAction(about_action)
+
+        # --- TOMBOL EXIT (SEJAJAR DI MENU BAR) ---
+        # Menggunakan menubar.addAction secara langsung agar sejajar dengan File & Help
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
+        menubar.addAction(exit_action)
 
-        self.statusBar().showMessage("Danang Adiwijaya - [NIM] | Nama Teman - [NIM]")
+        # --- STATUS BAR (Update Nama & NIM) ---
+        # Mengganti teks bawaan menjadi nama anggota kelompok
+        self.statusBar().showMessage("Danang Adiwijaya (F1D02310044) | Wimar (F1D024000) | Bang Klisman (F1D022000)")
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -84,6 +96,28 @@ class MainWindow(QMainWindow):
         
         self.switch_page(0, self.page_dashboard.load_data) # Default
 
+    def show_about(self):
+        """Menampilkan dialog informasi anggota kelompok saat menu Help -> About diklik"""
+        about_text = (
+            "Sistem Peminjaman Inventaris Lab\n\n"
+            "Anggota Kelompok:\n"
+            "1. Danang Adiwijaya (F1D02310044)\n"
+            "2. Wimar (F1D024000)\n"
+            "3. Bang Klisman (F1D022000)"
+        )
+        
+        # Buat objek dialog secara eksplisit agar bisa ditempel properti tema
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("About Application")
+        msg_box.setText(about_text)
+        msg_box.setIcon(QMessageBox.Information)
+        
+        # Samakan properti tema dengan status window saat ini
+        state = "dark" if self.is_dark_mode else "light"
+        msg_box.setProperty("theme", state)
+        
+        msg_box.exec()
+
     def switch_page(self, index, load_func=None):
         self.pages.setCurrentIndex(index)
         if load_func:
@@ -103,12 +137,21 @@ class MainWindow(QMainWindow):
         state = "dark" if self.is_dark_mode else "light"
         self.setProperty("theme", state)
         
+        # Tambahkan baris ini agar QStatusBar juga tahu kalau temanya berubah
+        self.statusBar().setProperty("theme", state)
+
         # Load Global Styles (Sidebar, Inputs, Buttons, Table)
         try:
             with open("assets/global.qss", "r") as f:
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             pass
+
+        # FORCE REFRESH: Memaksa gaya MainWindow dan StatusBar untuk di-render ulang
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.statusBar().style().unpolish(self.statusBar())
+        self.statusBar().style().polish(self.statusBar())
 
         # Trigger Theme Update di masing-masing page
         self.page_dashboard.set_theme(state)

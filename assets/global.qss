@@ -1,24 +1,27 @@
+/* ==========================================================================
+   GLOBAL.QSS - SYSTEM THEME FIXED
+   Digunakan oleh: QMainWindow, BorrowDialog, QMessageBox, dll.
+   ========================================================================== */
+
 /* ==========================================
-   GLOBAL.QSS
-   Digunakan oleh: QMainWindow, BorrowDialog,
-   dan semua widget yang mewarisi dari main window.
+   --- LIGHT THEME (DEFAULT) ---
    ========================================== */
 
-/* --- LIGHT THEME (DEFAULT) --- */
-
 QMainWindow[theme="light"],
-QDialog[theme="light"] {
-    background-color: #f8fafc;
+QDialog[theme="light"],
+QMessageBox[theme="light"] {
+    background-color: #ffffff; /* Ubah latar belakang jadi putih bersih */
     color: #0f172a;
 }
 
-/* FIX: Label di dalam Dialog/Window light mode harus eksplisit */
+/* Teks Label di dalam Jendela Light Mode */
 QMainWindow[theme="light"] QLabel,
-QDialog[theme="light"] QLabel {
-    color: #0f172a;
+QDialog[theme="light"] QLabel,
+QMessageBox[theme="light"] QLabel {
+    color: #0f172a !important; /* Paksa teks jadi gelap agar terbaca di background putih */
 }
 
-/* Sidebar */
+/* Sidebar - Light */
 QWidget#Sidebar {
     background-color: #ffffff;
     border-right: 1px solid #e2e8f0;
@@ -53,12 +56,12 @@ QPushButton#SidebarButton[active="true"] {
     font-weight: bold;
 }
 
-/* Main Content Area */
+/* Main Content Area - Light */
 QWidget#MainContent {
     background-color: #f8fafc;
 }
 
-/* Form Controls */
+/* Form Controls - Light */
 QLineEdit, QComboBox, QDateEdit {
     background-color: #ffffff;
     color: #0f172a;
@@ -72,7 +75,7 @@ QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
     border: 1px solid #3b82f6;
 }
 
-/* Buttons */
+/* Buttons - Light */
 QPushButton#PrimaryActionButton {
     background-color: #2563eb;
     color: white;
@@ -102,7 +105,7 @@ QPushButton#ActionButton:hover, QPushButton:hover {
     border-color: #94a3b8;
 }
 
-/* Menu Bar */
+/* Menu Bar - Light */
 QMenuBar {
     background-color: #ffffff;
     color: #0f172a;
@@ -124,7 +127,7 @@ QMenuBar::item:pressed {
     color: #0369a1;
 }
 
-/* Dropdown Menu */
+/* Dropdown Menu - Light */
 QMenu {
     background-color: #ffffff;
     color: #0f172a;
@@ -154,7 +157,7 @@ QMenu::separator {
     margin: 4px 8px;
 }
 
-/* Tables */
+/* Tables - Light */
 QTableWidget {
     background-color: #ffffff;
     alternate-background-color: #f8fafc;
@@ -173,16 +176,26 @@ QHeaderView::section {
     border-bottom: 2px solid #e2e8f0;
 }
 
+
 /* ==========================================
-   DARK THEME OVERRIDES
+   --- DARK THEME OVERRIDES ---
    ========================================== */
 
 QMainWindow[theme="dark"],
-QDialog[theme="dark"] {
+QDialog[theme="dark"],
+QMessageBox[theme="dark"] {
     background-color: #0f172a;
     color: #f8fafc;
 }
 
+/* Teks Label di dalam Jendela Dark Mode */
+QMainWindow[theme="dark"] QLabel,
+QDialog[theme="dark"] QLabel,
+QMessageBox[theme="dark"] QLabel {
+    color: #cbd5e1 !important;
+}
+
+/* Sidebar - Dark */
 QWidget[theme="dark"] QWidget#Sidebar {
     background-color: #1e293b;
     border-right: 1px solid #334155;
@@ -206,10 +219,12 @@ QWidget[theme="dark"] QPushButton#SidebarButton[active="true"] {
     color: #ffffff;
 }
 
+/* Main Content Area - Dark */
 QWidget[theme="dark"] QWidget#MainContent {
     background-color: #0f172a;
 }
 
+/* Form Controls - Dark */
 QWidget[theme="dark"] QLineEdit,
 QWidget[theme="dark"] QComboBox,
 QWidget[theme="dark"] QDateEdit {
@@ -224,6 +239,7 @@ QWidget[theme="dark"] QDateEdit:focus {
     border: 1px solid #3b82f6;
 }
 
+/* Buttons - Dark */
 QWidget[theme="dark"] QPushButton#ActionButton,
 QWidget[theme="dark"] QPushButton {
     background-color: #1e293b;
@@ -237,6 +253,7 @@ QWidget[theme="dark"] QPushButton:hover {
     border-color: #64748b;
 }
 
+/* Tables - Dark */
 QWidget[theme="dark"] QTableWidget {
     background-color: #1e293b;
     alternate-background-color: #111827;
@@ -249,10 +266,6 @@ QWidget[theme="dark"] QHeaderView::section {
     background-color: #111827;
     color: #cbd5e1;
     border-bottom: 2px solid #334155;
-}
-
-QWidget[theme="dark"] QLabel {
-    color: #cbd5e1;
 }
 
 /* Menu Bar - Dark */
@@ -290,4 +303,26 @@ QMainWindow[theme="dark"] QMenu::item:disabled {
 
 QMainWindow[theme="dark"] QMenu::separator {
     background-color: #334155;
+}
+
+
+/* ==========================================
+   --- FIX UNTUK STATUS BAR ---
+   ========================================== */
+QStatusBar {
+    font-size: 12px;
+}
+
+QMainWindow[theme="light"] QStatusBar,
+QMainWindow[theme="light"] QStatusBar QLabel {
+    background-color: #f8fafc;
+    color: #0f172a;
+    border-top: 1px solid #e2e8f0;
+}
+
+QMainWindow[theme="dark"] QStatusBar,
+QMainWindow[theme="dark"] QStatusBar QLabel {
+    background-color: #0f172a;
+    color: #f8fafc;
+    border-top: 1px solid #334155;
 }
