@@ -12,6 +12,12 @@ QDialog[theme="light"] {
     color: #0f172a;
 }
 
+/* FIX: Label di dalam Dialog/Window light mode harus eksplisit */
+QMainWindow[theme="light"] QLabel,
+QDialog[theme="light"] QLabel {
+    color: #0f172a;
+}
+
 /* Sidebar */
 QWidget#Sidebar {
     background-color: #ffffff;
