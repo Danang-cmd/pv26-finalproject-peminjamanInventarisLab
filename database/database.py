@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-DB_NAME = "lab_inventory.db"
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lab_inventory.db")
 
 def connect_db():
     return sqlite3.connect(DB_NAME)

@@ -34,6 +34,31 @@ QLineEdit::placeholder {
     color: #94a3b8;
 }
 
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    selection-background-color: #e0f2fe;
+    selection-color: #0f172a;
+    padding: 4px;
+}
+
+QComboBox QAbstractItemView::item {
+    padding: 6px 12px;
+    min-height: 28px;
+    color: #0f172a;
+}
+
+/* Fix SpinBox di dialog */
+QSpinBox {
+    background-color: #ffffff;
+    color: #0f172a;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
 /* Buttons */
 QPushButton#ActionButton, QPushButton {
     background-color: #ffffff;
@@ -75,6 +100,55 @@ QTableWidget QTableWidgetItem[low_stock="true"] {
     font-weight: bold;
 }
 
+/* ── Tombol CRUD ── */
+QPushButton#BtnTambah {
+    background-color: #22c55e;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: bold;
+    font-size: 13px;
+}
+QPushButton#BtnTambah:hover {
+    background-color: #16a34a;
+}
+QPushButton#BtnTambah:pressed {
+    background-color: #15803d;
+}
+
+QPushButton#BtnEdit {
+    background-color: #3b82f6;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: bold;
+    font-size: 13px;
+}
+QPushButton#BtnEdit:hover {
+    background-color: #2563eb;
+}
+QPushButton#BtnEdit:pressed {
+    background-color: #1d4ed8;
+}
+
+QPushButton#BtnHapus {
+    background-color: #ef4444;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: bold;
+    font-size: 13px;
+}
+QPushButton#BtnHapus:hover {
+    background-color: #dc2626;
+}
+QPushButton#BtnHapus:pressed {
+    background-color: #b91c1c;
+}
+
 /* ==========================================
    DARK THEME OVERRIDES
    ========================================== */
@@ -98,6 +172,29 @@ QWidget[theme="dark"] QComboBox {
 QWidget[theme="dark"] QLineEdit:focus,
 QWidget[theme="dark"] QComboBox:focus {
     border: 1px solid #3b82f6;
+}
+
+QWidget[theme="dark"] QComboBox QAbstractItemView {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    selection-background-color: #334155;
+    selection-color: #f8fafc;
+}
+
+QWidget[theme="dark"] QComboBox QAbstractItemView::item {
+    color: #f8fafc;
+    min-height: 28px;
+    padding: 6px 12px;
+}
+
+QWidget[theme="dark"] QSpinBox {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
 }
 
 QWidget[theme="dark"] QPushButton#ActionButton,
@@ -126,3 +223,25 @@ QWidget[theme="dark"] QHeaderView::section {
     color: #cbd5e1;
     border-bottom: 2px solid #334155;
 }
+
+/* ── Tombol CRUD dark theme ── */
+QWidget[theme="dark"] QPushButton#BtnTambah {
+    background-color: #16a34a;
+    color: #ffffff;
+    border: none;
+}
+QWidget[theme="dark"] QPushButton#BtnTambah:hover { background-color: #15803d; }
+
+QWidget[theme="dark"] QPushButton#BtnEdit {
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+}
+QWidget[theme="dark"] QPushButton#BtnEdit:hover { background-color: #1d4ed8; }
+
+QWidget[theme="dark"] QPushButton#BtnHapus {
+    background-color: #dc2626;
+    color: #ffffff;
+    border: none;
+}
+QWidget[theme="dark"] QPushButton#BtnHapus:hover { background-color: #b91c1c; }
