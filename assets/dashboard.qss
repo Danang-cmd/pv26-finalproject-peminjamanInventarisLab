@@ -1,41 +1,77 @@
 /* ==========================================
-   DASHBOARD.QSS
-   Digunakan oleh: DashboardPage (ui/dashboard.py)
-   ========================================== */
+   DASHBOARD.QSS - MODERN CARDS
+========================================== */
 
 /* --- LIGHT THEME (DEFAULT) --- */
-
 QWidget[theme="light"] {
     background-color: #f8fafc;
     color: #0f172a;
 }
 
-/* Summary Card */
-QLabel#DashboardSummary {
-    background-color: #ffffff;
-    color: #334155;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 20px;
-    font-size: 14px;
-    line-height: 1.8;
+/* Header Text */
+QLabel#DashboardHeader {
+    font-size: 22px;
+    font-weight: bold;
+    color: #1e293b;
+    margin-bottom: 15px;
+    padding-left: 5px;
 }
+
+/* Card Container */
+QFrame#DashboardCard {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 25px;
+}
+
+QFrame#DashboardCard:hover {
+    border: 1px solid #cbd5e1;
+    background-color: #f1f5f9;
+}
+
+/* Card Title */
+QLabel#CardTitle {
+    font-size: 15px;
+    font-weight: bold;
+    color: #64748b;
+}
+
+/* Card Number Value */
+QLabel#CardValue {
+    font-size: 42px;
+    font-weight: bold;
+    color: #2563eb; /* Warna Biru Khas PySide Action */
+    margin-top: 15px;
+}
+
 
 /* ==========================================
    DARK THEME OVERRIDES
-   ========================================== */
-
+========================================== */
 QWidget[theme="dark"] {
     background-color: #0f172a;
     color: #f8fafc;
 }
 
-QWidget[theme="dark"] QLabel#DashboardSummary {
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    color: #e2e8f0;
+QWidget[theme="dark"] QLabel#DashboardHeader {
+    color: #f8fafc;
 }
 
-QWidget[theme="dark"] QLabel {
-    color: #cbd5e1;
+QWidget[theme="dark"] QFrame#DashboardCard {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+}
+
+QWidget[theme="dark"] QFrame#DashboardCard:hover {
+    border: 1px solid #475569;
+    background-color: #334155;
+}
+
+QWidget[theme="dark"] QLabel#CardTitle {
+    color: #94a3b8;
+}
+
+QWidget[theme="dark"] QLabel#CardValue {
+    color: #60a5fa; /* Biru terang untuk mode gelap */
 }
