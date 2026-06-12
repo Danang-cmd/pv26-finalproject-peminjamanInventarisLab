@@ -105,10 +105,7 @@ class MainWindow(QMainWindow):
         """Menampilkan dialog informasi anggota kelompok saat menu Help -> About diklik"""
         about_text = (
             "Sistem Peminjaman Inventaris Lab\n\n"
-            "Anggota Kelompok:\n"
-            "1. Danang Adiwijaya (F1D02310044)\n"
-            "2. Wimar (F1D024000)\n"
-            "3. Mohammad Klisman Reynaldi (F1D022063)"
+            "Aplikasi ini adalah sistem manajemen internal berbasis antarmuka grafis (GUI) yang dirancang khusus untuk mempermudah tugas seorang petugas laboratorium dalam mendata aset lab serta mengelola transaksi peminjaman barang secara digital, menggantikan pencatatan manual di buku besar."
         )
         
         # Buat objek dialog secara eksplisit agar bisa ditempel properti tema
