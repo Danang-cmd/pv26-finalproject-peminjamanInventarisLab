@@ -1,16 +1,18 @@
+import sys
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                                QTableWidget, QTableWidgetItem, QHeaderView, 
                                QDialog, QFormLayout, QLineEdit, QComboBox, 
-                               QDateEdit, QMessageBox, QFileDialog)
+                               QDateEdit, QMessageBox, QFileDialog, QLabel)
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrinter
 import database.database as database
 
 class BorrowDialog(QDialog):
-    def __init__(self, parent=None, is_dark=False):
+    def __init__(self, parent=None, is_dark=False, borrow_data=None):
         super().__init__(parent)
-        self.setWindowTitle("Form Peminjaman Alat")
+        self.borrow_data = borrow_data
+        self.setWindowTitle("Edit Peminjaman" if borrow_data else "Form Peminjaman Alat")
         self.setMinimumWidth(350)
         self.layout = QFormLayout(self)
         self.layout.setSpacing(12)
@@ -19,12 +21,14 @@ class BorrowDialog(QDialog):
         self.input_nim = QLineEdit()
 
         self.combo_alat = QComboBox()
-        self.load_items()
-
+        
         self.date_pinjam = QDateEdit(QDate.currentDate())
         self.date_pinjam.setCalendarPopup(True)
         self.date_kembali = QDateEdit(QDate.currentDate().addDays(7))
         self.date_kembali.setCalendarPopup(True)
+        
+        self.combo_status = QComboBox()
+        self.combo_status.addItems(["Dipinjam", "Dikembalikan"])
 
         self.btn_save = QPushButton("Simpan Data")
         self.btn_save.clicked.connect(self.validate_and_save)
@@ -34,7 +38,15 @@ class BorrowDialog(QDialog):
         self.layout.addRow("Pilih Alat:", self.combo_alat)
         self.layout.addRow("Tanggal Pinjam:", self.date_pinjam)
         self.layout.addRow("Tenggat Kembali:", self.date_kembali)
+        self.layout.addRow("Status:", self.combo_status)
         self.layout.addRow("", self.btn_save)
+        
+        if not borrow_data:
+            self.combo_status.setEnabled(False) # Default Dipinjam untuk data baru
+            self.load_items()
+        else:
+            self._populate(borrow_data)
+
         self.apply_theme("dark" if is_dark else "light")
         
     def load_items(self):
@@ -45,6 +57,23 @@ class BorrowDialog(QDialog):
             self.combo_alat.addItem(f"{row[1]} (Stok: {row[2]})", row[0])
         conn.close()
 
+    def _populate(self, data):
+        self.input_nama.setText(data["nama_mhs"])
+        self.input_nim.setText(data["nim_mhs"])
+        self.date_pinjam.setDate(QDate.fromString(data["tgl_pinjam"], "yyyy-MM-dd"))
+        self.date_kembali.setDate(QDate.fromString(data["tgl_kembali"], "yyyy-MM-dd"))
+        self.combo_status.setCurrentText(data["status"])
+        
+        self.combo_alat.setEnabled(False) # Tidak boleh ganti alat saat edit (biar simple update stoknya)
+        
+        conn = database.connect_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, nama_alat FROM items WHERE id = ?", (data["item_id"],))
+        item = cursor.fetchone()
+        if item:
+            self.combo_alat.addItem(f"{item[1]}", item[0])
+        conn.close()
+
     def validate_and_save(self):
         if not self.input_nama.text().strip() or not self.input_nim.text().strip():
             QMessageBox.warning(self, "Error", "Nama dan NIM tidak boleh kosong!")
@@ -53,6 +82,16 @@ class BorrowDialog(QDialog):
             QMessageBox.warning(self, "Error", "Tidak ada alat yang dipilih atau stok habis!")
             return
         self.accept()
+
+    def get_data(self):
+        return {
+            "nama_mhs": self.input_nama.text().strip(),
+            "nim_mhs": self.input_nim.text().strip(),
+            "item_id": self.combo_alat.currentData(),
+            "tgl_pinjam": self.date_pinjam.date().toString("yyyy-MM-dd"),
+            "tgl_kembali": self.date_kembali.date().toString("yyyy-MM-dd"),
+            "status": self.combo_status.currentText()
+        }
 
     def apply_theme(self, state):
         self.setProperty("theme", state)
@@ -71,19 +110,30 @@ class BorrowingPage(QWidget):
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(12)
 
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
         
-        btn_add = QPushButton("+ Pinjam Alat")
+        btn_add = QPushButton("＋ Pinjam Alat")
         btn_add.setObjectName("PrimaryActionButton")
         btn_add.clicked.connect(self.add_borrow)
+
+        btn_edit = QPushButton("✏  Edit Data")
+        btn_edit.setObjectName("BtnEdit")
+        btn_edit.clicked.connect(self.edit_borrow)
+
+        btn_hapus = QPushButton("🗑  Hapus Data")
+        btn_hapus.setObjectName("BtnHapus")
+        btn_hapus.clicked.connect(self.delete_borrow)
 
         btn_export = QPushButton("Cetak Bukti (PDF)")
         btn_export.setObjectName("ActionButton")
         btn_export.clicked.connect(self.export_pdf)
 
         top_layout.addWidget(btn_add)
+        top_layout.addWidget(btn_edit)
+        top_layout.addWidget(btn_hapus)
         top_layout.addWidget(btn_export)
         top_layout.addStretch()
 
@@ -92,51 +142,149 @@ class BorrowingPage(QWidget):
         self.table_borrow.setHorizontalHeaderLabels(["ID", "Nama Mhs", "NIM", "Alat ID", "Tgl Pinjam", "Tgl Kembali", "Status"])
         self.table_borrow.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_borrow.setAlternatingRowColors(True)
+        self.table_borrow.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table_borrow.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table_borrow.verticalHeader().setVisible(False)
+        self.table_borrow.doubleClicked.connect(self.edit_borrow)
+
+        self.lbl_count = QLabel("0 peminjaman ditemukan")
+        self.lbl_count.setStyleSheet("font-size: 12px; color: #94a3b8;")
 
         layout.addLayout(top_layout)
         layout.addWidget(self.table_borrow)
+        layout.addWidget(self.lbl_count)
 
     def load_data(self):
         conn = database.connect_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM borrowings")
+        cur.execute("SELECT * FROM borrowings ORDER BY id DESC")
         rows = cur.fetchall()
         conn.close()
 
         self.table_borrow.setRowCount(len(rows))
         for row_idx, row_data in enumerate(rows):
             for col_idx, col_data in enumerate(row_data):
-                self.table_borrow.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
+                item = QTableWidgetItem(str(col_data))
+                item.setTextAlignment(Qt.AlignCenter)
+                self.table_borrow.setItem(row_idx, col_idx, item)
+
+            status = row_data[6]
+            if status == "Dikembalikan":
+                for col_idx in range(self.table_borrow.columnCount()):
+                    cell = self.table_borrow.item(row_idx, col_idx)
+                    if cell:
+                        cell.setForeground(Qt.darkGreen)
+            else:
+                for col_idx in range(self.table_borrow.columnCount()):
+                    cell = self.table_borrow.item(row_idx, col_idx)
+                    if cell:
+                        cell.setForeground(Qt.red)
+
+        self.lbl_count.setText(f"{len(rows)} peminjaman ditemukan")
+
+    def _get_selected_item(self):
+        row = self.table_borrow.currentRow()
+        if row < 0:
+            QMessageBox.information(self, "Pilih Data", "Pilih baris peminjaman terlebih dahulu dari tabel.")
+            return None
+        return {
+            "id": self.table_borrow.item(row, 0).text(),
+            "nama_mhs": self.table_borrow.item(row, 1).text(),
+            "nim_mhs": self.table_borrow.item(row, 2).text(),
+            "item_id": int(self.table_borrow.item(row, 3).text()),
+            "tgl_pinjam": self.table_borrow.item(row, 4).text(),
+            "tgl_kembali": self.table_borrow.item(row, 5).text(),
+            "status": self.table_borrow.item(row, 6).text()
+        }
 
     def add_borrow(self):
         dialog = BorrowDialog(self, is_dark=self.is_dark_mode)
         if dialog.exec():
-            nama = dialog.input_nama.text()
-            nim = dialog.input_nim.text()
-            item_id = dialog.combo_alat.currentData()
-            tgl_pinjam = dialog.date_pinjam.date().toString("yyyy-MM-dd")
-            tgl_kembali = dialog.date_kembali.date().toString("yyyy-MM-dd")
+            data = dialog.get_data()
 
             conn = database.connect_db()
             cur = conn.cursor()
             cur.execute("INSERT INTO borrowings (nama_mhs, nim_mhs, item_id, tgl_pinjam, tgl_kembali, status) VALUES (?, ?, ?, ?, ?, 'Dipinjam')",
-                        (nama, nim, item_id, tgl_pinjam, tgl_kembali))
-            conn.commit()
-            cur.execute("UPDATE items SET stok_tersedia = stok_tersedia - 1 WHERE id = ?", (item_id,))
+                        (data["nama_mhs"], data["nim_mhs"], data["item_id"], data["tgl_pinjam"], data["tgl_kembali"]))
+            cur.execute("UPDATE items SET stok_tersedia = stok_tersedia - 1 WHERE id = ?", (data["item_id"],))
             conn.commit()
             conn.close()
             self.load_data()
             QMessageBox.information(self, "Sukses", "Data peminjaman berhasil disimpan!")
 
-    def export_pdf(self):
-        row = self.table_borrow.currentRow()
-        if row < 0:
-            QMessageBox.warning(self, "Peringatan", "Pilih data peminjaman di tabel terlebih dahulu!")
+    def edit_borrow(self):
+        selected = self._get_selected_item()
+        if not selected:
             return
 
-        nama = self.table_borrow.item(row, 1).text()
-        nim = self.table_borrow.item(row, 2).text()
-        tgl_pinjam = self.table_borrow.item(row, 4).text()
+        dialog = BorrowDialog(self, is_dark=self.is_dark_mode, borrow_data=selected)
+        if dialog.exec():
+            data = dialog.get_data()
+            
+            conn = database.connect_db()
+            cur = conn.cursor()
+            
+            # Update data peminjaman
+            cur.execute("UPDATE borrowings SET nama_mhs=?, nim_mhs=?, tgl_pinjam=?, tgl_kembali=?, status=? WHERE id=?",
+                        (data["nama_mhs"], data["nim_mhs"], data["tgl_pinjam"], data["tgl_kembali"], data["status"], selected["id"]))
+            
+            # Cek jika status berubah
+            if selected["status"] == "Dipinjam" and data["status"] == "Dikembalikan":
+                cur.execute("UPDATE items SET stok_tersedia = stok_tersedia + 1 WHERE id = ?", (selected["item_id"],))
+            elif selected["status"] == "Dikembalikan" and data["status"] == "Dipinjam":
+                cur.execute("SELECT stok_tersedia FROM items WHERE id = ?", (selected["item_id"],))
+                stok = cur.fetchone()[0]
+                if stok > 0:
+                    cur.execute("UPDATE items SET stok_tersedia = stok_tersedia - 1 WHERE id = ?", (selected["item_id"],))
+                else:
+                    QMessageBox.warning(self, "Error", "Stok alat sudah habis, tidak bisa mengubah status menjadi Dipinjam.")
+                    conn.rollback()
+                    conn.close()
+                    return
+
+            conn.commit()
+            conn.close()
+            self.load_data()
+            QMessageBox.information(self, "Sukses", "Data peminjaman berhasil diperbarui!")
+
+    def delete_borrow(self):
+        selected = self._get_selected_item()
+        if not selected:
+            return
+            
+        konfirmasi = QMessageBox.question(
+            self,
+            "Konfirmasi Hapus",
+            f"Yakin ingin menghapus data peminjaman oleh {selected['nama_mhs']}?\n\nTindakan ini tidak dapat dibatalkan.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if konfirmasi != QMessageBox.Yes:
+            return
+
+        conn = database.connect_db()
+        cur = conn.cursor()
+        
+        # Jika statusnya masih Dipinjam, kembalikan stoknya
+        if selected["status"] == "Dipinjam":
+            cur.execute("UPDATE items SET stok_tersedia = stok_tersedia + 1 WHERE id = ?", (selected["item_id"],))
+            
+        cur.execute("DELETE FROM borrowings WHERE id=?", (selected["id"],))
+        conn.commit()
+        conn.close()
+        
+        self.load_data()
+        QMessageBox.information(self, "Sukses", "Data peminjaman berhasil dihapus!")
+
+    def export_pdf(self):
+        selected = self._get_selected_item()
+        if not selected:
+            return
+
+        nama = selected["nama_mhs"]
+        nim = selected["nim_mhs"]
+        tgl_pinjam = selected["tgl_pinjam"]
 
         path, _ = QFileDialog.getSaveFileName(self, "Cetak Bukti PDF", f"Bukti_{nim}.pdf", "PDF Files (*.pdf)")
         if path:
