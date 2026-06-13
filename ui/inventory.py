@@ -13,7 +13,7 @@ import database.database as database
 class ItemDialog(QDialog):
     """Dialog dipakai untuk Tambah maupun Edit item inventaris."""
 
-    KATEGORI_LIST = ["Elektronik", "Gelas Kaca", "Mekanik", "Optik", "Kimia", "Lainnya"]
+    KATEGORI_LIST = ["Komputer & Jaringan", "Elektronik & Mikrokontroler", "Alat Ukur", "Kabel & Konektor", "Komponen Elektronik", "Lainnya"]
 
     def __init__(self, parent=None, item_data: dict = None):
         super().__init__(parent)
@@ -146,8 +146,9 @@ class InventoryPage(QWidget):
         self.search_inv.textChanged.connect(self.load_data)
 
         self.filter_kategori = QComboBox()
-        self.filter_kategori.addItems(["Semua Kategori", "Elektronik", "Gelas Kaca",
-                                       "Mekanik", "Optik", "Kimia", "Lainnya"])
+        self.filter_kategori.addItems(["Semua Kategori", "Komputer & Jaringan",
+                               "Elektronik & Mikrokontroler", "Alat Ukur",
+                               "Kabel & Konektor", "Komponen Elektronik", "Lainnya"])
         self.filter_kategori.currentTextChanged.connect(self.load_data)
 
         btn_export_csv = QPushButton("Export CSV")
