@@ -122,6 +122,8 @@ class BorrowingPage(QWidget):
             cur.execute("INSERT INTO borrowings (nama_mhs, nim_mhs, item_id, tgl_pinjam, tgl_kembali, status) VALUES (?, ?, ?, ?, ?, 'Dipinjam')",
                         (nama, nim, item_id, tgl_pinjam, tgl_kembali))
             conn.commit()
+            cur.execute("UPDATE items SET stok_tersedia = stok_tersedia - 1 WHERE id = ?", (item_id,))
+            conn.commit()
             conn.close()
             self.load_data()
             QMessageBox.information(self, "Sukses", "Data peminjaman berhasil disimpan!")

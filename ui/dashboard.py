@@ -1,29 +1,85 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout
+from PySide6.QtCore import Qt
 import database.database as database
 
 class DashboardPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
-        
+
     def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 30, 30, 30)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(30, 30, 30, 30)
+        self.main_layout.setSpacing(20)
+
+        # --- Header Dashboard ---
+        self.lbl_welcome = QLabel("👋 Selamat Datang di Dashboard Laboratorium")
+        self.lbl_welcome.setObjectName("DashboardHeader")
+        self.main_layout.addWidget(self.lbl_welcome)
+
+        # --- Layout Grid untuk Cards ---
+        self.cards_layout = QGridLayout()
+        self.cards_layout.setSpacing(20)
+
+        # Card 1: Total Jenis Alat
+        self.card_total_items, self.val_total_items = self.create_card("Total Jenis Alat", "📦")
+        self.cards_layout.addWidget(self.card_total_items, 0, 0)
+
+        # Card 2: Sedang Dipinjam
+        self.card_borrowed, self.val_borrowed = self.create_card("Sedang Dipinjam", "🔄")
+        self.cards_layout.addWidget(self.card_borrowed, 0, 1)
+
+        # Card 3: Total Stok Keseluruhan
+        self.card_total_stock, self.val_total_stock = self.create_card("Total Stok Fisik", "📊")
+        self.cards_layout.addWidget(self.card_total_stock, 1, 0)
+
+        # Card 4: Stok Menipis (< 5)
+        self.card_low_stock, self.val_low_stock = self.create_card("Stok Menipis (< 5)", "⚠️")
+        self.cards_layout.addWidget(self.card_low_stock, 1, 1)
+
+        self.main_layout.addLayout(self.cards_layout)
+        self.main_layout.addStretch()
+
+    def create_card(self, title_text, icon):
+        """Fungsi helper untuk membuat UI Kartu agar kode tidak berulang"""
+        card = QFrame()
+        card.setObjectName("DashboardCard")
+        layout = QVBoxLayout(card)
+
+        title = QLabel(f"{icon}  {title_text}")
+        title.setObjectName("CardTitle")
+
+        value = QLabel("0")
+        value.setObjectName("CardValue")
+        value.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(title)
+        layout.addWidget(value)
         
-        self.lbl_summary = QLabel("Memuat ringkasan...")
-        self.lbl_summary.setObjectName("DashboardSummary")
-        layout.addWidget(self.lbl_summary)
-        layout.addStretch()
+        return card, value
 
     def load_data(self):
+        """Mengambil data real-time dari database SQLite"""
         conn = database.connect_db()
         cur = conn.cursor()
+
+        # 1. Total Jenis Alat
         cur.execute("SELECT COUNT(*) FROM items")
-        total_items = cur.fetchone()[0]
+        self.val_total_items.setText(str(cur.fetchone()[0] or 0))
+
+        # 2. Alat Sedang Dipinjam
         cur.execute("SELECT COUNT(*) FROM borrowings WHERE status='Dipinjam'")
-        active_borrows = cur.fetchone()[0]
+        self.val_borrowed.setText(str(cur.fetchone()[0] or 0))
+
+        # 3. Total Stok Fisik (Jumlah semua barang)
+        cur.execute("SELECT SUM(stok_total) FROM items")
+        self.val_total_stock.setText(str(cur.fetchone()[0] or 0))
+
+        # 4. Alat dengan Stok Tersedia Menipis (Kurang dari 5)
+        cur.execute("SELECT COUNT(*) FROM items WHERE stok_tersedia < 5")
+        self.val_low_stock.setText(str(cur.fetchone()[0] or 0))
+
         conn.close()
-        self.lbl_summary.setText(f"📋 Ringkasan Laboratorium\n\nTotal Jenis Alat: {total_items}\nAlat Sedang Dipinjam: {active_borrows}")
 
     def set_theme(self, state):
         self.setProperty("theme", state)
