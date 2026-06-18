@@ -384,21 +384,36 @@ class InventoryPage(QWidget):
     # ── Export CSV ─────────────────────────────
     def export_csv(self):
         path, _ = QFileDialog.getSaveFileName(self, "Save CSV", "", "CSV Files (*.csv)")
-        if path:
+        if not path:
+            return
+
+        try:
             with open(path, mode='w', newline='', encoding='utf-8-sig') as file:
-                writer = csv.writer(file)
-                headers = [self.table_inv.horizontalHeaderItem(i).text()
-                           for i in range(self.table_inv.columnCount())]
+                # Menggunakan delimiter=';' agar Excel langsung otomatis membaginya ke dalam tabel/kolom
+                writer = csv.writer(file, delimiter=';')
+                
+                # Ambil header tabel (Melewati indeks 0 karena ID tidak perlu diekspor)
+                headers = [
+                    self.table_inv.horizontalHeaderItem(i).text()
+                    for i in range(1, self.table_inv.columnCount())
+                ]
                 writer.writerow(headers)
+                
+                # Ambil data dari baris tabel
                 for row in range(self.table_inv.rowCount()):
-                    row_data = [
-                        self.table_inv.item(row, col).text()
-                        if self.table_inv.item(row, col) else ""
-                        for col in range(self.table_inv.columnCount())
-                    ]
+                    row_data = []
+                    # Mulai dari indeks 1 untuk melewati kolom ID
+                    for col in range(1, self.table_inv.columnCount()):
+                        cell = self.table_inv.item(row, col)
+                        row_data.append(cell.text() if cell else "")
+                    
                     writer.writerow(row_data)
+                    
             QMessageBox.information(self, "Sukses",
-                                    "Data inventaris berhasil diekspor ke CSV!")
+                                    "Data inventaris berhasil diekspor!\n\n"
+                                    "Silakan buka file tersebut di Excel/WPS untuk melihat tabel yang rapi.")
+        except Exception as e:
+            QMessageBox.warning(self, "Gagal", f"Gagal mengekspor data.\n\nDetail: {e}")
 
     # ── Tema ───────────────────────────────────
     def set_theme(self, state):
