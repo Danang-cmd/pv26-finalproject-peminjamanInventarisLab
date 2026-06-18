@@ -127,52 +127,66 @@ class BorrowingPage(QWidget):
         self.setup_ui()
         
     def setup_ui(self):
-        # ... (Bagian atas setup_ui tetap sama seperti milikmu) ...
-        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(12)
-
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
-        btn_add = QPushButton("  ＋  Pinjam Alat")
+
+        btn_add = QPushButton(" ＋  Pinjam Alat")
         btn_add.setObjectName("PrimaryActionButton")
         btn_add.clicked.connect(self.add_borrow)
-
-        btn_edit = QPushButton("  ✏   Edit Data")
+        
+        btn_edit = QPushButton(" ✏    Edit Data")
         btn_edit.setObjectName("BtnEdit")
         btn_edit.clicked.connect(self.edit_borrow)
-
-        btn_hapus = QPushButton("  🗑   Hapus Data")
+        
+        btn_hapus = QPushButton(" 🗑   Hapus Data")
         btn_hapus.setObjectName("BtnHapus")
         btn_hapus.clicked.connect(self.delete_borrow)
-
+        
         top_layout.addWidget(btn_add)
         top_layout.addWidget(btn_edit)
         top_layout.addWidget(btn_hapus)
         top_layout.addStretch()
 
-        # ── Tabel ──────────────────────────────
+        # ── TAMBAHAN: Input Pencarian Nama / NIM ──────────────────
+        search_layout = QHBoxLayout()
+        self.input_search = QLineEdit()
+        self.input_search.setPlaceholderText("🔍  Cari berdasarkan Nama Mahasiswa atau NIM...")
+        self.input_search.setStyleSheet("""
+            QLineEdit {
+                padding: 8px 12px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: transparent;
+            }
+        """)
+        # Setiap kali teks berubah, fungsi filter_data akan langsung dipanggil (Real-time)
+        self.input_search.textChanged.connect(self.filter_data)
+        search_layout.addWidget(self.input_search)
+        # ──────────────────────────────────────────────────────────
+
         self.table_borrow = QTableWidget()
-        self.table_borrow.setColumnCount(9) # Tetap 9 kolom
+        self.table_borrow.setColumnCount(9)
         self.table_borrow.setHorizontalHeaderLabels([
             "ID", "Nama Mahasiswa", "NIM", "Nama Alat", "Jumlah", "Tgl Pinjam", "Tgl Kembali", "Status", "Item ID"
         ])
         
         header = self.table_borrow.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents) # ID
-        header.setSectionResizeMode(1, QHeaderView.Stretch)          # Nama Mhs
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents) # NIM
-        header.setSectionResizeMode(3, QHeaderView.Stretch)          # Nama Alat
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents) # Jumlah
-        header.setSectionResizeMode(5, QHeaderView.ResizeToContents) # Tgl Pinjam
-        header.setSectionResizeMode(6, QHeaderView.ResizeToContents) # Tgl Kembali
-        header.setSectionResizeMode(7, QHeaderView.ResizeToContents) # Status (Lebar otomatis pas teks)
-        header.setSectionResizeMode(8, QHeaderView.ResizeToContents) # Item ID
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(7, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(8, QHeaderView.ResizeToContents)
         
-        # SEKARANG HANYA SEMBUNYIKAN KOLOM ID (0) DAN ITEM ID (8)
         self.table_borrow.setColumnHidden(0, True)
-        self.table_borrow.setColumnHidden(7, False) # Diubah jadi False agar status TAMPIL
+        self.table_borrow.setColumnHidden(7, False)
         self.table_borrow.setColumnHidden(8, True)
 
         self.table_borrow.setAlternatingRowColors(True)
@@ -180,11 +194,13 @@ class BorrowingPage(QWidget):
         self.table_borrow.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table_borrow.verticalHeader().setVisible(False)
         self.table_borrow.doubleClicked.connect(self.edit_borrow)
-
+        
         self.lbl_count = QLabel("0 peminjaman ditemukan")
         self.lbl_count.setStyleSheet("font-size: 12px; color: #94a3b8;")
-
+        
+        # Susun layout
         layout.addLayout(top_layout)
+        layout.addLayout(search_layout) # Tambahkan baris pencarian di bawah tombol utama
         layout.addWidget(self.table_borrow)
         layout.addWidget(self.lbl_count)
 
@@ -253,6 +269,31 @@ class BorrowingPage(QWidget):
 
         self.table_borrow.setUpdatesEnabled(True)
         self.lbl_count.setText(f"{len(rows)} peminjaman ditemukan")
+        self.filter_data()
+
+    def filter_data(self):
+        # Ambil teks pencarian, ubah jadi huruf kecil semua (case-insensitive)
+        search_text = self.input_search.text().strip().lower()
+        
+        visible_row_count = 0
+        
+        # Looping setiap baris yang ada di tabel
+        for row in range(self.table_borrow.rowCount()):
+            item_nama = self.table_borrow.item(row, 1)
+            item_nim = self.table_borrow.item(row, 2)
+            
+            nama = item_nama.text().lower() if item_nama else ""
+            nim = item_nim.text().lower() if item_nim else ""
+            
+            # Jika teks pencarian kosong, atau cocok dengan nama/nim, tampilkan barisnya
+            if not search_text or search_text in nama or search_text in nim:
+                self.table_borrow.setRowHidden(row, False)
+                visible_row_count += 1
+            else:
+                self.table_borrow.setRowHidden(row, True)
+                
+        # Perbarui label jumlah data berdasarkan data hasil filter yang terlihat
+        self.lbl_count.setText(f"{visible_row_count} peminjaman ditemukan")
 
     def _get_selected_item(self):
         row = self.table_borrow.currentRow()
