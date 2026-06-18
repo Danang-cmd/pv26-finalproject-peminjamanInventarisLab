@@ -111,45 +111,64 @@ class BorrowingPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(12)
-
+        
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
-        
-        btn_add = QPushButton("＋ Pinjam Alat")
+
+        btn_add = QPushButton(" ＋  Pinjam Alat")
         btn_add.setObjectName("PrimaryActionButton")
         btn_add.clicked.connect(self.add_borrow)
-
-        btn_edit = QPushButton("✏  Edit Data")
+        
+        btn_edit = QPushButton(" ✏    Edit Data")
         btn_edit.setObjectName("BtnEdit")
         btn_edit.clicked.connect(self.edit_borrow)
-
-        btn_hapus = QPushButton("🗑  Hapus Data")
+        
+        btn_hapus = QPushButton(" 🗑   Hapus Data")
         btn_hapus.setObjectName("BtnHapus")
         btn_hapus.clicked.connect(self.delete_borrow)
-
+        
         btn_export = QPushButton("Cetak Bukti (PDF)")
         btn_export.setObjectName("ActionButton")
         btn_export.clicked.connect(self.export_pdf)
-
+        
         top_layout.addWidget(btn_add)
         top_layout.addWidget(btn_edit)
         top_layout.addWidget(btn_hapus)
         top_layout.addWidget(btn_export)
         top_layout.addStretch()
 
+        # ── Tabel ──────────────────────────────
         self.table_borrow = QTableWidget()
-        self.table_borrow.setColumnCount(7)
-        self.table_borrow.setHorizontalHeaderLabels(["ID", "Nama Mhs", "NIM", "Alat ID", "Tgl Pinjam", "Tgl Kembali", "Status"])
-        self.table_borrow.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_borrow.setColumnCount(8) # Naik jadi 8 kolom untuk menyimpan item_id di latar
+        self.table_borrow.setHorizontalHeaderLabels([
+            "ID", "Nama Mahasiswa", "NIM", "Nama Alat", "Tgl Pinjam", "Tgl Kembali", "Status", "Item ID"
+        ])
+        
+        # Penyesuaian lebar kolom
+        header = self.table_borrow.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents) # ID
+        header.setSectionResizeMode(1, QHeaderView.Stretch)          # Nama Mhs (Lebar otomatis)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents) # NIM
+        header.setSectionResizeMode(3, QHeaderView.Stretch)          # Nama Alat (Lebar otomatis)
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents) # Tgl Pinjam
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents) # Tgl Kembali
+        header.setSectionResizeMode(6, QHeaderView.ResizeToContents) # Status
+        header.setSectionResizeMode(7, QHeaderView.ResizeToContents) # Item ID
+        
+        # Sembunyikan kolom ID (0), Status (6), dan Item ID (7)
+        self.table_borrow.setColumnHidden(0, True)
+        self.table_borrow.setColumnHidden(6, True)
+        self.table_borrow.setColumnHidden(7, True)
+
         self.table_borrow.setAlternatingRowColors(True)
         self.table_borrow.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_borrow.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table_borrow.verticalHeader().setVisible(False)
         self.table_borrow.doubleClicked.connect(self.edit_borrow)
-
+        
         self.lbl_count = QLabel("0 peminjaman ditemukan")
         self.lbl_count.setStyleSheet("font-size: 12px; color: #94a3b8;")
-
+        
         layout.addLayout(top_layout)
         layout.addWidget(self.table_borrow)
         layout.addWidget(self.lbl_count)
@@ -157,17 +176,34 @@ class BorrowingPage(QWidget):
     def load_data(self):
         conn = database.connect_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM borrowings ORDER BY id DESC")
+        
+        # Query menggunakan JOIN untuk menarik nama_alat, beserta item_id untuk kolom tersembunyi
+        query = """
+            SELECT b.id, b.nama_mhs, b.nim_mhs, i.nama_alat, 
+                   b.tgl_pinjam, b.tgl_kembali, b.status, b.item_id 
+            FROM borrowings b
+            JOIN items i ON b.item_id = i.id
+            ORDER BY b.id DESC
+        """
+        cur.execute(query)
         rows = cur.fetchall()
         conn.close()
 
+        # Matikan update sementara agar UI tidak lag saat meresize kolom
+        self.table_borrow.setUpdatesEnabled(False)
         self.table_borrow.setRowCount(len(rows))
+        
         for row_idx, row_data in enumerate(rows):
             for col_idx, col_data in enumerate(row_data):
                 item = QTableWidgetItem(str(col_data))
-                item.setTextAlignment(Qt.AlignCenter)
+                # Teks Nama Mahasiswa dan Nama Alat diratakan ke kiri
+                if col_idx in [1, 3]:
+                    item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignCenter)
                 self.table_borrow.setItem(row_idx, col_idx, item)
-
+            
+            # Warnai berdasarkan status (status sekarang ada di indeks ke-6)
             status = row_data[6]
             if status == "Dikembalikan":
                 for col_idx in range(self.table_borrow.columnCount()):
@@ -180,6 +216,7 @@ class BorrowingPage(QWidget):
                     if cell:
                         cell.setForeground(Qt.red)
 
+        self.table_borrow.setUpdatesEnabled(True)
         self.lbl_count.setText(f"{len(rows)} peminjaman ditemukan")
 
     def _get_selected_item(self):
@@ -191,10 +228,10 @@ class BorrowingPage(QWidget):
             "id": self.table_borrow.item(row, 0).text(),
             "nama_mhs": self.table_borrow.item(row, 1).text(),
             "nim_mhs": self.table_borrow.item(row, 2).text(),
-            "item_id": int(self.table_borrow.item(row, 3).text()),
+            "item_id": int(self.table_borrow.item(row, 7).text()), # Diambil dari kolom ekstra (indeks 7)
             "tgl_pinjam": self.table_borrow.item(row, 4).text(),
             "tgl_kembali": self.table_borrow.item(row, 5).text(),
-            "status": self.table_borrow.item(row, 6).text()
+            "status": self.table_borrow.item(row, 6).text()       # Diambil dari kolom status (indeks 6)
         }
 
     def add_borrow(self):
