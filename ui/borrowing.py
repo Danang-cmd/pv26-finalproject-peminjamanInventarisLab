@@ -4,8 +4,6 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                                QDialog, QFormLayout, QLineEdit, QComboBox, 
                                QDateEdit, QMessageBox, QFileDialog, QLabel, QSpinBox)
 from PySide6.QtCore import Qt, QDate
-from PySide6.QtGui import QTextDocument
-from PySide6.QtPrintSupport import QPrinter
 import database.database as database
 
 class BorrowDialog(QDialog):
@@ -149,14 +147,9 @@ class BorrowingPage(QWidget):
         btn_hapus.setObjectName("BtnHapus")
         btn_hapus.clicked.connect(self.delete_borrow)
 
-        btn_export = QPushButton("Cetak Bukti (PDF)")
-        btn_export.setObjectName("ActionButton")
-        btn_export.clicked.connect(self.export_pdf)
-
         top_layout.addWidget(btn_add)
         top_layout.addWidget(btn_edit)
         top_layout.addWidget(btn_hapus)
-        top_layout.addWidget(btn_export)
         top_layout.addStretch()
 
         # ── Tabel ──────────────────────────────
@@ -357,40 +350,6 @@ class BorrowingPage(QWidget):
         conn.close()
         self.load_data()
         QMessageBox.information(self, "Sukses", "Data peminjaman berhasil dihapus!")
-
-    def export_pdf(self):
-        selected = self._get_selected_item()
-        if not selected: return
-        
-        nama = selected["nama_mhs"]
-        nim = selected["nim_mhs"]
-        alat = selected["nama_alat"]
-        jumlah = selected["jumlah"]
-        tgl_pinjam = selected["tgl_pinjam"]
-        
-        path, _ = QFileDialog.getSaveFileName(self, "Cetak Bukti PDF", f"Bukti_{nim}.pdf", "PDF Files (*.pdf)")
-        if path:
-            printer = QPrinter(QPrinter.HighResolution)
-            printer.setOutputFormat(QPrinter.PdfFormat)
-            printer.setOutputFileName(path)
-            doc = QTextDocument()
-            html = f"""
-            <h1 style="text-align: center; color: #0f172a;">UNIVERSITAS MATARAM</h1>
-            <h2 style="text-align: center; color: #475569;">Bukti Peminjaman Inventaris</h2>
-            <hr style="border: 1px solid #cbd5e1;">
-            <table style="width: 100%; margin-top: 20px; font-size: 14px;">
-                <tr><td style="width: 30%; font-weight: bold;">Nama Mahasiswa</td><td>: {nama}</td></tr>
-                <tr><td style="font-weight: bold;">NIM</td><td>: {nim}</td></tr>
-                <tr><td style="font-weight: bold;">Nama Alat</td><td>: {alat}</td></tr>
-                <tr><td style="font-weight: bold;">Jumlah</td><td>: {jumlah} Unit</td></tr>
-                <tr><td style="font-weight: bold;">Tanggal Pinjam</td><td>: {tgl_pinjam}</td></tr>
-            </table>
-            <br><br>
-            <p style="color: #64748b; font-style: italic;">Harap kembalikan alat sesuai dengan tenggat waktu.</p>
-            """
-            doc.setHtml(html)
-            doc.print_(printer)
-            QMessageBox.information(self, "Sukses", "Bukti PDF berhasil dicetak!")
 
     def set_theme(self, state):
         self.is_dark_mode = (state == "dark")
