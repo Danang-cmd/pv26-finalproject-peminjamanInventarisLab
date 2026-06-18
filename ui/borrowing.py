@@ -161,11 +161,11 @@ class BorrowingPage(QWidget):
 
         # ── Tabel ──────────────────────────────
         self.table_borrow = QTableWidget()
-        self.table_borrow.setColumnCount(9) # Naik jadi 9 kolom (ada tambahan 'Jumlah')
+        self.table_borrow.setColumnCount(9) # Tetap 9 kolom
         self.table_borrow.setHorizontalHeaderLabels([
             "ID", "Nama Mahasiswa", "NIM", "Nama Alat", "Jumlah", "Tgl Pinjam", "Tgl Kembali", "Status", "Item ID"
         ])
-
+        
         header = self.table_borrow.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents) # ID
         header.setSectionResizeMode(1, QHeaderView.Stretch)          # Nama Mhs
@@ -174,13 +174,14 @@ class BorrowingPage(QWidget):
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents) # Jumlah
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents) # Tgl Pinjam
         header.setSectionResizeMode(6, QHeaderView.ResizeToContents) # Tgl Kembali
-        header.setSectionResizeMode(7, QHeaderView.ResizeToContents) # Status
+        header.setSectionResizeMode(7, QHeaderView.ResizeToContents) # Status (Lebar otomatis pas teks)
         header.setSectionResizeMode(8, QHeaderView.ResizeToContents) # Item ID
-
-        # Sembunyikan kolom ID (0), Status (7), dan Item ID (8)
+        
+        # SEKARANG HANYA SEMBUNYIKAN KOLOM ID (0) DAN ITEM ID (8)
         self.table_borrow.setColumnHidden(0, True)
-        self.table_borrow.setColumnHidden(7, True)
+        self.table_borrow.setColumnHidden(7, False) # Diubah jadi False agar status TAMPIL
         self.table_borrow.setColumnHidden(8, True)
+
         self.table_borrow.setAlternatingRowColors(True)
         self.table_borrow.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_borrow.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -197,10 +198,10 @@ class BorrowingPage(QWidget):
     def load_data(self):
         conn = database.connect_db()
         cur = conn.cursor()
-
+        
         query = """
-            SELECT b.id, b.nama_mhs, b.nim_mhs, i.nama_alat, b.jumlah,
-                   b.tgl_pinjam, b.tgl_kembali, b.status, b.item_id
+            SELECT b.id, b.nama_mhs, b.nim_mhs, i.nama_alat, b.jumlah, 
+                   b.tgl_pinjam, b.tgl_kembali, b.status, b.item_id 
             FROM borrowings b
             JOIN items i ON b.item_id = i.id
             ORDER BY b.id DESC
@@ -211,26 +212,52 @@ class BorrowingPage(QWidget):
 
         self.table_borrow.setUpdatesEnabled(False)
         self.table_borrow.setRowCount(len(rows))
+        
+        current_date = QDate.currentDate() # Ambil tanggal hari ini
 
         for row_idx, row_data in enumerate(rows):
+            # Ambil data asli dari database
+            status_db = row_data[7]
+            tgl_kembali_str = row_data[6]
+            tgl_kembali_qd = QDate.fromString(tgl_kembali_str, "yyyy-MM-dd")
+
+            # Logika Cek Keterlambatan otomatis
+            status_display = status_db
+            if status_db == "Dipinjam" and tgl_kembali_qd < current_date:
+                status_display = "Terlambat"
+
             for col_idx, col_data in enumerate(row_data):
-                item = QTableWidgetItem(str(col_data))
-                if col_idx in [1, 3]:
+                # Jika sedang di kolom status (indeks 7), gunakan status_display hasil pengecekan kita
+                text_to_show = status_display if col_idx == 7 else str(col_data)
+                
+                item = QTableWidgetItem(text_to_show)
+                if col_idx in [1, 3]:  # Nama Mahasiswa & Nama Alat rata kiri
                     item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 else:
                     item.setTextAlignment(Qt.AlignCenter)
                 self.table_borrow.setItem(row_idx, col_idx, item)
+            
+            # Pewarnaan baris/teks berdasarkan status display aktual
+            if status_display == "Dikembalikan":
+                for col_idx in range(self.table_borrow.columnCount()):
+                    cell = self.table_borrow.item(row_idx, col_idx)
+                    if cell: 
+                        cell.setForeground(Qt.darkGreen)
+            elif status_display == "Terlambat":
+                for col_idx in range(self.table_borrow.columnCount()):
+                    cell = self.table_borrow.item(row_idx, col_idx)
+                    if cell: 
+                        # Warna Merah Tua untuk yang terlambat
+                        cell.setForeground(Qt.red)
+                        font = cell.font()
+                        font.setBold(True)
+                        cell.setFont(font)
+            else: # Status "Dipinjam" tapi belum terlambat
+                for col_idx in range(self.table_borrow.columnCount()):
+                    cell = self.table_borrow.item(row_idx, col_idx)
+                    if cell: 
+                        cell.setForeground(Qt.blue) # Biru menunjukkan masih dalam masa pinjam aktif
 
-            status = row_data[7]
-            if status == "Dikembalikan":
-                for col_idx in range(self.table_borrow.columnCount()):
-                    cell = self.table_borrow.item(row_idx, col_idx)
-                    if cell: cell.setForeground(Qt.darkGreen)
-            else:
-                for col_idx in range(self.table_borrow.columnCount()):
-                    cell = self.table_borrow.item(row_idx, col_idx)
-                    if cell: cell.setForeground(Qt.red)
-                    
         self.table_borrow.setUpdatesEnabled(True)
         self.lbl_count.setText(f"{len(rows)} peminjaman ditemukan")
 
@@ -239,6 +266,11 @@ class BorrowingPage(QWidget):
         if row < 0:
             QMessageBox.information(self, "Pilih Data", "Pilih baris peminjaman terlebih dahulu dari tabel.")
             return None
+            
+        # Jika teks di tabel adalah "Terlambat", kembalikan ke status aslinya "Dipinjam" untuk form edit
+        status_table = self.table_borrow.item(row, 7).text()
+        status_real = "Dipinjam" if status_table == "Terlambat" else status_table
+
         return {
             "id": self.table_borrow.item(row, 0).text(),
             "nama_mhs": self.table_borrow.item(row, 1).text(),
@@ -247,7 +279,7 @@ class BorrowingPage(QWidget):
             "jumlah": self.table_borrow.item(row, 4).text(),
             "tgl_pinjam": self.table_borrow.item(row, 5).text(),
             "tgl_kembali": self.table_borrow.item(row, 6).text(),
-            "status": self.table_borrow.item(row, 7).text(),
+            "status": status_real, # Menggunakan status real agar combobox form edit sinkron
             "item_id": int(self.table_borrow.item(row, 8).text())
         }
 
