@@ -187,12 +187,27 @@ class InventoryPage(QWidget):
         self.table_inv.setColumnCount(6)
         self.table_inv.setHorizontalHeaderLabels(
             ["ID", "Kode", "Nama Alat", "Kategori", "Total Stok", "Tersedia"])
-        self.table_inv.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        
+        # --- PENYESUAIAN LEBAR KOLOM ---
+        header = self.table_inv.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents) # ID
+        header.setSectionResizeMode(1, QHeaderView.Interactive)      # Kode (bisa di-resize manual jika perlu)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)          # Nama Alat (Mengambil sisa ruang paling lebar)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents) # Kategori
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents) # Total Stok
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents) # Tersedia
+        
+        # Set lebar minimum default untuk kolom Kode agar tidak terlalu sempit di awal
+        self.table_inv.setColumnWidth(1, 100)
+        
+        # Sembunyikan kolom ID (Indeks 0)
+        self.table_inv.setColumnHidden(0, True)
+        # -------------------------------
+
         self.table_inv.setAlternatingRowColors(True)
         self.table_inv.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_inv.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table_inv.verticalHeader().setVisible(False)
-        # Double-click langsung buka dialog edit
         self.table_inv.doubleClicked.connect(self.edit_item)
 
         # ── Keterangan jumlah data ─────────────
@@ -222,11 +237,18 @@ class InventoryPage(QWidget):
         rows = cur.fetchall()
         conn.close()
 
+        # Matikan updates sementara waktu proses isi data agar resize berjalan mulus
+        self.table_inv.setUpdatesEnabled(False)
+        
         self.table_inv.setRowCount(len(rows))
         for row_idx, row_data in enumerate(rows):
             for col_idx, col_data in enumerate(row_data):
                 item = QTableWidgetItem(str(col_data))
-                item.setTextAlignment(Qt.AlignCenter)
+                # Berikan padding horizontal tipis pada text agar tidak terlalu mepet garis
+                if col_idx in [1, 2, 3]:
+                    item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignCenter)
                 self.table_inv.setItem(row_idx, col_idx, item)
 
             # Warnai merah jika stok tersedia == 0
@@ -237,6 +259,8 @@ class InventoryPage(QWidget):
                     if cell:
                         cell.setForeground(Qt.red)
 
+        # Nyalakan kembali updates setelah data selesai dimuat
+        self.table_inv.setUpdatesEnabled(True)
         self.lbl_count.setText(f"{len(rows)} item ditemukan")
 
     # ── Ambil baris terpilih ───────────────────
