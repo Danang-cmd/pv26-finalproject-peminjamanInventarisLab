@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
 
         # --- STATUS BAR (POJOK KANAN BAWAH) ---
         # Kita buat QLabel khusus agar teks bisa diatur posisinya dan di-style lewat QSS
-        self.status_label = QLabel("Danang Adiwijaya (F1D02310044) | Wimar (F1D024000) | Mohammad Klisman Reynaldi (F1D022063)")
+        self.status_label = QLabel("Danang Adiwijaya (F1D02310044) | Wimar Aryasmarta Prakasa (F1D02410026) | Mohammad Klisman Reynaldi (F1D022063)")
         self.status_label.setObjectName("StatusLabel")
         
         # permanent widget otomatis meletakkan widget di pojok kanan bawah
