@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout
 from PySide6.QtCore import Qt, QDate
-import database.database as database
+import models.dashboard_model as dashboard_model # Import model yang baru dibuat
 
 class DashboardPage(QWidget):
     def __init__(self, parent=None):
@@ -13,7 +13,7 @@ class DashboardPage(QWidget):
         self.main_layout.setSpacing(20)
 
         # --- Header Dashboard ---
-        self.lbl_welcome = QLabel("👋 Selamat Datang di Dashboard Laboratorium")
+        self.lbl_welcome = QLabel(" 👋  Selamat Datang di Dashboard Laboratorium")
         self.lbl_welcome.setObjectName("DashboardHeader")
         self.main_layout.addWidget(self.lbl_welcome)
 
@@ -22,19 +22,19 @@ class DashboardPage(QWidget):
         self.cards_layout.setSpacing(20)
 
         # Card 1: Total Jenis Alat
-        self.card_total_items, self.val_total_items = self.create_card("Total Jenis Alat", "📦")
+        self.card_total_items, self.val_total_items = self.create_card("Total Jenis Alat", " 📦 ")
         self.cards_layout.addWidget(self.card_total_items, 0, 0)
 
         # Card 2: Sedang Dipinjam
-        self.card_borrowed, self.val_borrowed = self.create_card("Sedang Dipinjam", "🔄")
+        self.card_borrowed, self.val_borrowed = self.create_card("Sedang Dipinjam", " 🔄 ")
         self.cards_layout.addWidget(self.card_borrowed, 0, 1)
 
         # Card 3: Total Stok Keseluruhan
-        self.card_total_stock, self.val_total_stock = self.create_card("Total Stok Fisik", "📊")
+        self.card_total_stock, self.val_total_stock = self.create_card("Total Stok Fisik", " 📊 ")
         self.cards_layout.addWidget(self.card_total_stock, 1, 0)
 
-        # Card 4: Stok Menipis (< 5)
-        self.card_late, self.val_late = self.create_card("Terlambat", " ⏰ ")
+        # Card 4: Terlambat
+        self.card_late, self.val_late = self.create_card("Terlambat", "  ⏰  ")
         self.cards_layout.addWidget(self.card_late, 1, 1)
 
         self.main_layout.addLayout(self.cards_layout)
@@ -55,32 +55,22 @@ class DashboardPage(QWidget):
 
         layout.addWidget(title)
         layout.addWidget(value)
-        
         return card, value
 
     def load_data(self):
-        """Mengambil data real-time dari database SQLite"""
-        conn = database.connect_db()
-        cur = conn.cursor()
-
+        """Mengambil data real-time melalui Dashboard Model"""
         # 1. Total Jenis Alat
-        cur.execute("SELECT COUNT(*) FROM items")
-        self.val_total_items.setText(str(cur.fetchone()[0] or 0))
-
+        self.val_total_items.setText(str(dashboard_model.get_total_jenis_alat()))
+        
         # 2. Alat Sedang Dipinjam
-        cur.execute("SELECT SUM(jumlah) FROM borrowings WHERE status IN ('Dipinjam', 'Terlambat')")
-        self.val_borrowed.setText(str(cur.fetchone()[0] or 0))
-
-        # 3. Total Stok Fisik (Jumlah semua barang)
-        cur.execute("SELECT SUM(stok_total) FROM items")
-        self.val_total_stock.setText(str(cur.fetchone()[0] or 0))
-
+        self.val_borrowed.setText(str(dashboard_model.get_total_alat_dipinjam()))
+        
+        # 3. Total Stok Fisik
+        self.val_total_stock.setText(str(dashboard_model.get_total_stok_fisik()))
+        
         # 4. Jumlah Peminjaman Terlambat
         current_date_str = QDate.currentDate().toString("yyyy-MM-dd")
-        cur.execute("SELECT COUNT(*) FROM borrowings WHERE status='Dipinjam' AND tgl_kembali < ?", (current_date_str,))
-        self.val_late.setText(str(cur.fetchone()[0] or 0))
-
-        conn.close()
+        self.val_late.setText(str(dashboard_model.get_total_peminjaman_terlambat(current_date_str)))
 
     def set_theme(self, state):
         self.setProperty("theme", state)
