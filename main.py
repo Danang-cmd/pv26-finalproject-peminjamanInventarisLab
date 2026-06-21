@@ -18,8 +18,6 @@ class MainWindow(QMainWindow):
         self.is_dark_mode = False
         self.setup_ui()
         self.apply_theme()
-        
-        self.insert_dummy_data()
 
     def setup_ui(self):
         menubar = self.menuBar()
@@ -166,24 +164,6 @@ class MainWindow(QMainWindow):
         self.page_dashboard.set_theme(state)
         self.page_inventory.set_theme(state)
         self.page_borrow.set_theme(state)
-
-    def insert_dummy_data(self):
-        conn = database.connect_db()
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM items")
-        if cur.fetchone()[0] == 0:
-            cur.execute("INSERT INTO items VALUES (NULL, 'KMP-01', 'Raspberry Pi 4', 'Komputer & Jaringan', 10, 10)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'KMP-02', 'Arduino Uno R3', 'Elektronik & Mikrokontroler', 15, 15)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'KMP-03', 'ESP32 Module', 'Elektronik & Mikrokontroler', 20, 20)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'ALT-01', 'Multimeter Digital', 'Alat Ukur', 8, 8)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'ALT-02', 'Osiloskop 100MHz', 'Alat Ukur', 3, 3)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'KBL-01', 'Kabel Jumper Male-Male', 'Kabel & Konektor', 50, 50)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'KBL-02', 'Kabel USB Type-C', 'Kabel & Konektor', 25, 25)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'KMP-04', 'Breadboard 830 Lubang', 'Komponen Elektronik', 30, 30)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'KMP-05', 'LCD 16x2 I2C', 'Komponen Elektronik', 12, 12)")
-            cur.execute("INSERT INTO items VALUES (NULL, 'KMP-06', 'Sensor Ultrasonik HC-SR04', 'Komponen Elektronik', 18, 18)")
-            conn.commit()
-        conn.close()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
