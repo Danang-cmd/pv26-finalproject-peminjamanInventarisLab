@@ -215,6 +215,23 @@ class BorrowingPage(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(12)
         
+        # 1. Input Pencarian (Sekarang Berada di Atas)
+        search_layout = QHBoxLayout()
+        self.input_search = QLineEdit()
+        self.input_search.setPlaceholderText(" 🔍  Cari berdasarkan Nama Mahasiswa atau NIM...")
+        self.input_search.setStyleSheet("""
+            QLineEdit {
+                padding: 8px 12px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                font-size: 13px;
+                background-color: transparent;
+            }
+        """)
+        self.input_search.textChanged.connect(self.filter_data)
+        search_layout.addWidget(self.input_search)
+        
+        # 2. Tombol-tombol CRUD (Berada di bawah Pencarian)
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
         
@@ -239,24 +256,8 @@ class BorrowingPage(QWidget):
         top_layout.addWidget(btn_hapus)
         top_layout.addWidget(btn_export)
         top_layout.addStretch()
-        
-        # Input Pencarian
-        search_layout = QHBoxLayout()
-        self.input_search = QLineEdit()
-        self.input_search.setPlaceholderText(" 🔍  Cari berdasarkan Nama Mahasiswa atau NIM...")
-        self.input_search.setStyleSheet("""
-            QLineEdit {
-                padding: 8px 12px;
-                border: 1px solid #cbd5e1;
-                border-radius: 6px;
-                font-size: 13px;
-                background-color: transparent;
-            }
-        """)
-        self.input_search.textChanged.connect(self.filter_data)
-        search_layout.addWidget(self.input_search)
 
-        # Tabel
+        # 3. Tabel Utama
         self.table_borrow = QTableWidget()
         self.table_borrow.setColumnCount(9)
         self.table_borrow.setHorizontalHeaderLabels([
@@ -286,8 +287,9 @@ class BorrowingPage(QWidget):
         self.lbl_count = QLabel("0 peminjaman ditemukan")
         self.lbl_count.setStyleSheet("font-size: 12px; color: #94a3b8;")
 
-        layout.addLayout(top_layout)
-        layout.addLayout(search_layout)
+        # Masukkan ke dalam urutan layout vertikal utama
+        layout.addLayout(search_layout)   # Pertama: Kolom Pencarian
+        layout.addLayout(top_layout)      # Kedua: Tombol-tombol Aksi
         layout.addWidget(self.table_borrow)
         layout.addWidget(self.lbl_count)
 
