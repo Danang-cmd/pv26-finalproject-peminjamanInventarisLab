@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QDate
 import database.database as database
 
 class DashboardPage(QWidget):
@@ -34,8 +34,8 @@ class DashboardPage(QWidget):
         self.cards_layout.addWidget(self.card_total_stock, 1, 0)
 
         # Card 4: Stok Menipis (< 5)
-        self.card_low_stock, self.val_low_stock = self.create_card("Stok Menipis (< 5)", "⚠️")
-        self.cards_layout.addWidget(self.card_low_stock, 1, 1)
+        self.card_late, self.val_late = self.create_card("Terlambat", " ⏰ ")
+        self.cards_layout.addWidget(self.card_late, 1, 1)
 
         self.main_layout.addLayout(self.cards_layout)
         self.main_layout.addStretch()
@@ -68,16 +68,17 @@ class DashboardPage(QWidget):
         self.val_total_items.setText(str(cur.fetchone()[0] or 0))
 
         # 2. Alat Sedang Dipinjam
-        cur.execute("SELECT COUNT(*) FROM borrowings WHERE status='Dipinjam'")
+        cur.execute("SELECT SUM(jumlah) FROM borrowings WHERE status IN ('Dipinjam', 'Terlambat')")
         self.val_borrowed.setText(str(cur.fetchone()[0] or 0))
 
         # 3. Total Stok Fisik (Jumlah semua barang)
         cur.execute("SELECT SUM(stok_total) FROM items")
         self.val_total_stock.setText(str(cur.fetchone()[0] or 0))
 
-        # 4. Alat dengan Stok Tersedia Menipis (Kurang dari 5)
-        cur.execute("SELECT COUNT(*) FROM items WHERE stok_tersedia < 5")
-        self.val_low_stock.setText(str(cur.fetchone()[0] or 0))
+        # 4. Jumlah Peminjaman Terlambat
+        current_date_str = QDate.currentDate().toString("yyyy-MM-dd")
+        cur.execute("SELECT COUNT(*) FROM borrowings WHERE status='Dipinjam' AND tgl_kembali < ?", (current_date_str,))
+        self.val_late.setText(str(cur.fetchone()[0] or 0))
 
         conn.close()
 
