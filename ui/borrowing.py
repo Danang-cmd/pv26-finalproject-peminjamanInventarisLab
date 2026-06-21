@@ -4,6 +4,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                                QDialog, QFormLayout, QLineEdit, QComboBox, 
                                QDateEdit, QMessageBox, QFileDialog, QLabel, QSpinBox)
 from PySide6.QtCore import Qt, QDate
+from PySide6.QtGui import QTextDocument
+from PySide6.QtPrintSupport import QPrinter
 import database.database as database
 
 class BorrowDialog(QDialog):
@@ -144,10 +146,15 @@ class BorrowingPage(QWidget):
         btn_hapus = QPushButton(" 🗑   Hapus Data")
         btn_hapus.setObjectName("BtnHapus")
         btn_hapus.clicked.connect(self.delete_borrow)
+
+        btn_export = QPushButton("  📄   Export PDF")
+        btn_export.setObjectName("BtnExport")
+        btn_export.clicked.connect(self.export_pdf)
         
         top_layout.addWidget(btn_add)
         top_layout.addWidget(btn_edit)
         top_layout.addWidget(btn_hapus)
+        top_layout.addWidget(btn_export)
         top_layout.addStretch()
 
         # ── TAMBAHAN: Input Pencarian Nama / NIM ──────────────────
@@ -391,6 +398,67 @@ class BorrowingPage(QWidget):
         conn.close()
         self.load_data()
         QMessageBox.information(self, "Sukses", "Data peminjaman berhasil dihapus!")
+
+    def export_pdf(self):
+        # 1. Buka dialog untuk memilih lokasi simpan file
+        path, _ = QFileDialog.getSaveFileName(self, "Simpan PDF", "Laporan_Peminjaman.pdf", "PDF Files (*.pdf)")
+        if not path:
+            return  # Batal jika user menutup dialog
+
+        # 2. Siapkan struktur HTML untuk tabel PDF
+        html = """
+        <h1 style='text-align: center;'>Laporan Peminjaman Alat</h1>
+        <hr>
+        <table border='1' cellspacing='0' cellpadding='5' width='100%' style='border-collapse: collapse;'>
+            <tr style='background-color: #f1f5f9;'>
+                <th>Nama Mahasiswa</th>
+                <th>NIM</th>
+                <th>Nama Alat</th>
+                <th>Jumlah</th>
+                <th>Tgl Pinjam</th>
+                <th>Tgl Kembali</th>
+                <th>Status</th>
+            </tr>
+        """
+
+        # 3. Ambil data dari tabel (hanya baris yang tidak disembunyikan/di-filter)
+        for row in range(self.table_borrow.rowCount()):
+            if self.table_borrow.isRowHidden(row):
+                continue  # Lewati baris yang disembunyikan oleh fitur pencarian
+            
+            html += "<tr>"
+            # Loop untuk kolom 1 sampai 7 (mengabaikan kolom 0: ID dan 8: Item ID)
+            for col in range(1, 8):
+                item = self.table_borrow.item(row, col)
+                text = item.text() if item else ""
+                
+                # Tambahkan sedikit styling jika statusnya terlambat atau dikembalikan
+                if col == 7:
+                    if text == "Terlambat":
+                        html += f"<td style='color: red; font-weight: bold; text-align: center;'>{text}</td>"
+                    elif text == "Dikembalikan":
+                        html += f"<td style='color: green; text-align: center;'>{text}</td>"
+                    else:
+                        html += f"<td style='color: blue; text-align: center;'>{text}</td>"
+                else:
+                    align = "left" if col in [1, 3] else "center"
+                    html += f"<td style='text-align: {align};'>{text}</td>"
+            
+            html += "</tr>"
+
+        html += "</table>"
+
+        # 4. Buat dokumen dan cetak ke PDF
+        document = QTextDocument()
+        document.setHtml(html)
+
+        printer = QPrinter()
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(path)
+
+        document.print_(printer)
+
+        QMessageBox.information(self, "Sukses", f"Data peminjaman berhasil diekspor ke:\n{path}")
 
     def set_theme(self, state):
         self.is_dark_mode = (state == "dark")
