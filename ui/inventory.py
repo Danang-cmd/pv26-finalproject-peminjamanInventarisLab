@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QTableWidgetItem, QHeaderView, QFileDialog, QMessageBox,
                                QDialog, QFormLayout, QSpinBox, QDialogButtonBox, QFrame)
 from PySide6.QtCore import Qt
-import database.database as database
+from models.item_model import ItemModel
 
 # ──────────────────────────────────────────────
 #  HELPER FUNCTION: Pop-up Pesan Sesuai Tema
@@ -274,23 +274,13 @@ class InventoryPage(QWidget):
     def load_data(self):
         search_text = self.search_inv.text().lower()
         kategori = self.filter_kategori.currentText()
-        
-        query = "SELECT * FROM items WHERE nama_alat LIKE ?"
-        params = [f"%{search_text}%"]
-        if kategori != "Semua Kategori":
-            query += " AND kategori = ?"
-            params.append(kategori)
-        query += " ORDER BY nama_alat ASC"
-        
-        conn = database.connect_db()
-        cur = conn.cursor()
-        cur.execute(query, params)
-        rows = cur.fetchall()
-        conn.close()
-        
+
+        # Panggil dari Model
+        rows = ItemModel.get_all(search_text, kategori)
+
         self.table_inv.setUpdatesEnabled(False)
         self.table_inv.setRowCount(len(rows))
-        
+
         for row_idx, row_data in enumerate(rows):
             for col_idx, col_data in enumerate(row_data):
                 item = QTableWidgetItem(str(col_data))
@@ -299,14 +289,15 @@ class InventoryPage(QWidget):
                 else:
                     item.setTextAlignment(Qt.AlignCenter)
                 self.table_inv.setItem(row_idx, col_idx, item)
-                
+
+            # Highlight merah jika stok habis
             stok_tersedia = int(row_data[5]) if row_data[5] is not None else 0
             if stok_tersedia == 0:
                 for col_idx in range(self.table_inv.columnCount()):
                     cell = self.table_inv.item(row_idx, col_idx)
                     if cell:
                         cell.setForeground(Qt.red)
-                        
+
         self.table_inv.setUpdatesEnabled(True)
         self.lbl_count.setText(f"{len(rows)} item ditemukan")
         
@@ -331,18 +322,11 @@ class InventoryPage(QWidget):
         dlg = ItemDialog(self)
         if dlg.exec() != QDialog.Accepted:
             return
+            
         data = dlg.get_data()
         try:
-            conn = database.connect_db()
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO items (kode_alat, nama_alat, kategori, stok_total, stok_tersedia) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (data["kode_alat"], data["nama_alat"], data["kategori"],
-                 data["stok_total"], data["stok_tersedia"])
-            )
-            conn.commit()
-            conn.close()
+            # Panggil dari Model
+            ItemModel.add(data)
             
             _show_message(self, "info", "Berhasil",
                           f"Alat '{data['nama_alat']}' berhasil ditambahkan.")
@@ -356,21 +340,15 @@ class InventoryPage(QWidget):
         selected = self._get_selected_item()
         if not selected:
             return
+            
         dlg = ItemDialog(self, item_data=selected)
         if dlg.exec() != QDialog.Accepted:
             return
+            
         data = dlg.get_data()
         try:
-            conn = database.connect_db()
-            cur = conn.cursor()
-            cur.execute(
-                "UPDATE items SET kode_alat=?, nama_alat=?, kategori=?, "
-                "stok_total=?, stok_tersedia=? WHERE id=?",
-                (data["kode_alat"], data["nama_alat"], data["kategori"],
-                 data["stok_total"], data["stok_tersedia"], selected["id"])
-            )
-            conn.commit()
-            conn.close()
+            # Panggil dari Model
+            ItemModel.update(selected["id"], data)
             
             _show_message(self, "info", "Berhasil",
                           f"Data '{data['nama_alat']}' berhasil diperbarui.")
@@ -383,22 +361,14 @@ class InventoryPage(QWidget):
         selected = self._get_selected_item()
         if not selected:
             return
-            
-        conn = database.connect_db()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT COUNT(*) FROM borrowings WHERE item_id=? AND status='Dipinjam'",
-            (selected["id"],)
-        )
-        sedang_dipinjam = cur.fetchone()[0]
-        conn.close()
-        
-        if sedang_dipinjam > 0:
+
+        # Cek status pinjaman lewat Model
+        if ItemModel.is_borrowed(selected["id"]):
             _show_message(self, "warning", "Tidak Dapat Dihapus",
                           f"Alat '{selected['nama_alat']}' sedang dalam status dipinjam.\n"
                           "Selesaikan peminjaman terlebih dahulu sebelum menghapus.")
             return
-            
+
         konfirmasi = _show_message(
             self,
             "question",
@@ -410,15 +380,13 @@ class InventoryPage(QWidget):
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
+        
         if konfirmasi != QMessageBox.Yes:
             return
-            
+
         try:
-            conn = database.connect_db()
-            cur = conn.cursor()
-            cur.execute("DELETE FROM items WHERE id=?", (selected["id"],))
-            conn.commit()
-            conn.close()
+            # Hapus lewat Model
+            ItemModel.delete(selected["id"])
             
             _show_message(self, "info", "Berhasil",
                           f"Alat '{selected['nama_alat']}' berhasil dihapus.")
