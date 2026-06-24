@@ -6,9 +6,6 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt
 from models.item_model import ItemModel
 
-# ──────────────────────────────────────────────
-#  HELPER FUNCTION: Pop-up Pesan Sesuai Tema
-# ──────────────────────────────────────────────
 def _show_message(parent, type_str, title, text, buttons=QMessageBox.Ok, default_button=QMessageBox.Ok):
     """Membuat QMessageBox yang mendukung tema terang/gelap secara dinamis."""
     msg = QMessageBox(parent)
@@ -24,13 +21,11 @@ def _show_message(parent, type_str, title, text, buttons=QMessageBox.Ok, default
     msg.setStandardButtons(buttons)
     msg.setDefaultButton(default_button)
     
-    # Ambil status tema dari parent
     theme = "light"
     if parent:
         theme = parent.property("theme") or "light"
     msg.setProperty("theme", theme)
     
-    # Muat file styling global & inventaris agar selector CSS bekerja
     styles = []
     for path in ["assets/global.qss", "assets/inventory.qss"]:
         try:
@@ -43,21 +38,17 @@ def _show_message(parent, type_str, title, text, buttons=QMessageBox.Ok, default
         
     return msg.exec()
 
-# ──────────────────────────────────────────────
-#  DIALOG: Tambah / Edit Alat
-# ──────────────────────────────────────────────
+#  Dialog Tambah / Edit Alat
 class ItemDialog(QDialog):
-    """Dialog dipakai untuk Tambah maupun Edit item inventaris."""
     KATEGORI_LIST = ["Komputer & Jaringan", "Elektronik & Mikrokontroler", "Alat Ukur", "Kabel & Konektor", "Komponen Elektronik", "Lainnya"]
     
     def __init__(self, parent=None, item_data: dict = None):
         super().__init__(parent)
-        self.item_data = item_data  # None → mode Tambah, dict → mode Edit
+        self.item_data = item_data 
         self.setWindowTitle("Edit Alat" if item_data else "Tambah Alat Baru")
         self.setMinimumWidth(400)
         self.setModal(True)
         
-        # Sinkronisasi tema aktif dari halaman induk (parent)
         self.theme_state = "light"
         if parent:
             self.theme_state = parent.property("theme") or "light"
@@ -69,7 +60,6 @@ class ItemDialog(QDialog):
             self._populate(item_data)
             
     def _apply_theme(self):
-        """Memuat stylesheet tema ke dalam jendela dialog."""
         styles = []
         for path in ["assets/global.qss", "assets/inventory.qss"]:
             try:
@@ -80,7 +70,6 @@ class ItemDialog(QDialog):
         if styles:
             self.setStyleSheet("\n".join(styles))
 
-    # ── build ──────────────────────────────────
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -91,7 +80,6 @@ class ItemDialog(QDialog):
         title.setStyleSheet("font-size: 15px; font-weight: bold;")
         layout.addWidget(title)
         
-        # Garis pembatas yang menyesuaikan tema terang/gelap
         divider = QFrame()
         divider.setFrameShape(QFrame.HLine)
         if self.theme_state == "dark":
@@ -112,7 +100,6 @@ class ItemDialog(QDialog):
         self.input_kategori = QComboBox()
         self.input_kategori.addItems(self.KATEGORI_LIST)
         
-        # Solusi agar list dropdown di dalam dialog juga ikut tema
         self.input_kategori.setStyleSheet("QComboBox QAbstractItemView { border: 1px solid #475569; }")
         
         self.input_stok_total = QSpinBox()
@@ -131,7 +118,6 @@ class ItemDialog(QDialog):
         form.addRow("Stok Tersedia *", self.input_stok_tersedia)
         layout.addLayout(form)
         
-        # Tombol OK / Batal
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.button(QDialogButtonBox.Ok).setText("Simpan")
         buttons.button(QDialogButtonBox.Cancel).setText("Batal")
@@ -140,12 +126,11 @@ class ItemDialog(QDialog):
         layout.addWidget(buttons)
         
     def _sync_stok_tersedia(self, total_value):
-        """Saat mode Tambah: stok tersedia otomatis ikuti stok total."""
         if not self.item_data:
             self.input_stok_tersedia.setValue(total_value)
             
     def _populate(self, data: dict):
-        """Isi form dengan data yang sudah ada (mode Edit)."""
+        """isi form dengan data yang sudah ada (mode Edit)."""
         self.input_kode.setText(data.get("kode_alat", ""))
         self.input_nama.setText(data.get("nama_alat", ""))
         idx = self.input_kategori.findText(data.get("kategori", ""))
@@ -154,7 +139,6 @@ class ItemDialog(QDialog):
         self.input_stok_total.setValue(int(data.get("stok_total", 1)))
         self.input_stok_tersedia.setValue(int(data.get("stok_tersedia", 1)))
         
-    # ── validasi ───────────────────────────────
     def _validate_and_accept(self):
         errors = []
         if not self.input_kode.text().strip():
@@ -170,7 +154,6 @@ class ItemDialog(QDialog):
             return
         self.accept()
         
-    # ── getter ─────────────────────────────────
     def get_data(self) -> dict:
         return {
             "kode_alat":      self.input_kode.text().strip().upper(),
@@ -180,21 +163,16 @@ class ItemDialog(QDialog):
             "stok_tersedia":  self.input_stok_tersedia.value(),
         }
 
-# ──────────────────────────────────────────────
-#  HALAMAN UTAMA INVENTARIS
-# ──────────────────────────────────────────────
 class InventoryPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
         
-    # ── UI ─────────────────────────────────────
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(12)
         
-        # ── Baris atas: Search + Filter + Tombol ──
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
         
@@ -218,7 +196,6 @@ class InventoryPage(QWidget):
         top_layout.addWidget(self.filter_kategori, 1)
         top_layout.addWidget(btn_export_csv)
         
-        # ── Baris tombol CRUD ──────────────────
         crud_layout = QHBoxLayout()
         crud_layout.setSpacing(8)
         
@@ -239,7 +216,6 @@ class InventoryPage(QWidget):
         crud_layout.addWidget(self.btn_hapus)
         crud_layout.addStretch()
         
-        # ── Tabel ──────────────────────────────
         self.table_inv = QTableWidget()
         self.table_inv.setColumnCount(6)
         self.table_inv.setHorizontalHeaderLabels(
@@ -261,7 +237,6 @@ class InventoryPage(QWidget):
         self.table_inv.verticalHeader().setVisible(False)
         self.table_inv.doubleClicked.connect(self.edit_item)
         
-        # ── Keterangan jumlah data ─────────────
         self.lbl_count = QLabel("0 item ditemukan")
         self.lbl_count.setStyleSheet("font-size: 12px; color: #94a3b8;")
         
@@ -270,7 +245,6 @@ class InventoryPage(QWidget):
         layout.addWidget(self.table_inv)
         layout.addWidget(self.lbl_count)
         
-    # ── Load data ──────────────────────────────
     def load_data(self):
         search_text = self.search_inv.text().lower()
         kategori = self.filter_kategori.currentText()
@@ -290,7 +264,6 @@ class InventoryPage(QWidget):
                     item.setTextAlignment(Qt.AlignCenter)
                 self.table_inv.setItem(row_idx, col_idx, item)
 
-            # Highlight merah jika stok habis
             stok_tersedia = int(row_data[5]) if row_data[5] is not None else 0
             if stok_tersedia == 0:
                 for col_idx in range(self.table_inv.columnCount()):
@@ -301,7 +274,6 @@ class InventoryPage(QWidget):
         self.table_inv.setUpdatesEnabled(True)
         self.lbl_count.setText(f"{len(rows)} item ditemukan")
         
-    # ── Ambil baris terpilih ───────────────────
     def _get_selected_item(self) -> dict | None:
         row = self.table_inv.currentRow()
         if row < 0:
@@ -317,7 +289,6 @@ class InventoryPage(QWidget):
             "stok_tersedia": self.table_inv.item(row, 5).text(),
         }
         
-    # ── TAMBAH ─────────────────────────────────
     def tambah_item(self):
         dlg = ItemDialog(self)
         if dlg.exec() != QDialog.Accepted:
@@ -325,7 +296,6 @@ class InventoryPage(QWidget):
             
         data = dlg.get_data()
         try:
-            # Panggil dari Model
             ItemModel.add(data)
             
             _show_message(self, "info", "Berhasil",
@@ -335,7 +305,6 @@ class InventoryPage(QWidget):
             _show_message(self, "warning", "Gagal",
                           f"Gagal menyimpan data.\nKode alat mungkin sudah dipakai.\n\nDetail: {e}")
             
-    # ── EDIT ───────────────────────────────────
     def edit_item(self):
         selected = self._get_selected_item()
         if not selected:
@@ -347,7 +316,6 @@ class InventoryPage(QWidget):
             
         data = dlg.get_data()
         try:
-            # Panggil dari Model
             ItemModel.update(selected["id"], data)
             
             _show_message(self, "info", "Berhasil",
@@ -356,7 +324,6 @@ class InventoryPage(QWidget):
         except Exception as e:
             _show_message(self, "warning", "Gagal", f"Gagal memperbarui data.\n\nDetail: {e}")
             
-    # ── HAPUS ──────────────────────────────────
     def hapus_item(self):
         selected = self._get_selected_item()
         if not selected:
@@ -385,7 +352,6 @@ class InventoryPage(QWidget):
             return
 
         try:
-            # Hapus lewat Model
             ItemModel.delete(selected["id"])
             
             _show_message(self, "info", "Berhasil",
@@ -394,7 +360,6 @@ class InventoryPage(QWidget):
         except Exception as e:
             _show_message(self, "warning", "Gagal", f"Gagal menghapus data.\n\nDetail: {e}")
             
-    # ── Export CSV ─────────────────────────────
     def export_csv(self):
         path, _ = QFileDialog.getSaveFileName(self, "Save CSV", "", "CSV Files (*.csv)")
         if not path:
@@ -422,7 +387,6 @@ class InventoryPage(QWidget):
         except Exception as e:
             _show_message(self, "warning", "Gagal", f"Gagal mengekspor data.\n\nDetail: {e}")
             
-    # ── Tema ───────────────────────────────────
     def set_theme(self, state):
         self.setProperty("theme", state)
         try:

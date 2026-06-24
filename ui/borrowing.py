@@ -9,9 +9,7 @@ from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrinter
 from models.borrowing_model import BorrowingModel
 
-# ──────────────────────────────────────────────
-#  HELPER FUNCTION: Pop-up Pesan Sesuai Tema
-# ──────────────────────────────────────────────
+#  helper Pop-up Pesan Sesuai Tema
 def _show_message(parent, type_str, title, text, buttons=QMessageBox.Ok, default_button=QMessageBox.Ok):
     """Membuat QMessageBox yang mendukung tema terang/gelap secara dinamis."""
     msg = QMessageBox(parent)
@@ -46,9 +44,7 @@ def _show_message(parent, type_str, title, text, buttons=QMessageBox.Ok, default
         
     return msg.exec()
 
-# ──────────────────────────────────────────────
-#  DIALOG: Tambah / Edit Peminjaman Alat
-# ──────────────────────────────────────────────
+#  dialog Tambah / Edit Peminjaman Alat
 class BorrowDialog(QDialog):
     def __init__(self, parent=None, is_dark=False, borrow_data=None):
         super().__init__(parent)
@@ -195,9 +191,6 @@ class BorrowDialog(QDialog):
             "status": self.combo_status.currentText()
         }
 
-# ──────────────────────────────────────────────
-#  HALAMAN UTAMA PEMINJAMAN
-# ──────────────────────────────────────────────
 class BorrowingPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -209,7 +202,7 @@ class BorrowingPage(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(12)
         
-        # 1. Input Pencarian (Sekarang Berada di Atas)
+        # 1. Input Pencarian
         search_layout = QHBoxLayout()
         self.input_search = QLineEdit()
         self.input_search.setPlaceholderText(" 🔍  Cari berdasarkan Nama Mahasiswa atau NIM...")
@@ -225,7 +218,7 @@ class BorrowingPage(QWidget):
         self.input_search.textChanged.connect(self.filter_data)
         search_layout.addWidget(self.input_search)
         
-        # 2. Tombol-tombol CRUD (Berada di bawah Pencarian)
+        # 2. Tombol-tombol CRUD
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
         
@@ -282,8 +275,8 @@ class BorrowingPage(QWidget):
         self.lbl_count.setStyleSheet("font-size: 12px; color: #94a3b8;")
 
         # Masukkan ke dalam urutan layout vertikal utama
-        layout.addLayout(search_layout)   # Pertama: Kolom Pencarian
-        layout.addLayout(top_layout)      # Kedua: Tombol-tombol Aksi
+        layout.addLayout(search_layout)   
+        layout.addLayout(top_layout)      
         layout.addWidget(self.table_borrow)
         layout.addWidget(self.lbl_count)
 

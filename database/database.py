@@ -10,7 +10,6 @@ def init_db():
     conn = connect_db()
     cursor = conn.cursor()
 
-    # Tabel 1: Inventaris (6 Kolom)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +21,6 @@ def init_db():
         )
     ''')
 
-    # Tabel 2: Peminjaman
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS borrowings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,14 +34,10 @@ def init_db():
         )
     ''')
 
-    # ── FITUR UPDATE OTOMATIS ──────────────────────────────────────────
-    # Mencoba menambahkan kolom 'jumlah' secara paksa ke database lama.
-    # Jika kolomnya sudah ada, program akan mengabaikannya secara aman.
     try:
         cursor.execute("ALTER TABLE borrowings ADD COLUMN jumlah INTEGER DEFAULT 1")
     except sqlite3.OperationalError:
-        pass  # Kolom sudah ada, tidak perlu diapa-apakan lagi
-    # ───────────────────────────────────────────────────────────────────
+        pass  
 
     conn.commit()
     conn.close()

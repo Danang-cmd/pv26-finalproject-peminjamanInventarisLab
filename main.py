@@ -22,32 +22,25 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
         menubar = self.menuBar()
 
-        # --- MENU FILE ---
         file_menu = menubar.addMenu("File")
         
         toggle_theme_action = QAction("Toggle Dark/Light Mode", self)
         toggle_theme_action.triggered.connect(self.toggle_theme)
         file_menu.addAction(toggle_theme_action)
 
-        # --- MENU HELP (Sekarang Berisi Dropdown) ---
         help_menu = menubar.addMenu("Help")
         
-        # Membuat item "About" di dalam menu Help
         about_action = QAction("About Application", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
-        # --- TOMBOL EXIT (SEJAJAR DI MENU BAR) ---
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
         menubar.addAction(exit_action)
 
-        # --- STATUS BAR (POJOK KANAN BAWAH) ---
-        # Kita buat QLabel khusus agar teks bisa diatur posisinya dan di-style lewat QSS
         self.status_label = QLabel("Danang Adiwijaya (F1D02310044) | Wimar Aryasmarta Prakasa (F1D02410026) | Mohammad Klisman Reynaldi (F1D022063)")
         self.status_label.setObjectName("StatusLabel")
         
-        # permanent widget otomatis meletakkan widget di pojok kanan bawah
         self.statusBar().addPermanentWidget(self.status_label)
 
         main_widget = QWidget()
@@ -89,7 +82,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.page_inventory)
         self.pages.addWidget(self.page_borrow)
 
-        # Setup Navigation Logic
+        # Setup navigasi
         self.btn_dashboard.clicked.connect(lambda: self.switch_page(0, self.page_dashboard.load_data))
         self.btn_inventory.clicked.connect(lambda: self.switch_page(1, self.page_inventory.load_data))
         self.btn_borrow.clicked.connect(lambda: self.switch_page(2, self.page_borrow.load_data))
@@ -97,7 +90,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(sidebar)
         main_layout.addWidget(self.pages)
         
-        self.switch_page(0, self.page_dashboard.load_data) # Default
+        self.switch_page(0, self.page_dashboard.load_data)
 
     def show_about(self):
         """Menampilkan dialog informasi anggota kelompok saat menu Help -> About diklik"""
@@ -106,13 +99,11 @@ class MainWindow(QMainWindow):
             "Aplikasi ini adalah sistem manajemen internal berbasis antarmuka grafis (GUI) yang dirancang khusus untuk mempermudah tugas seorang petugas laboratorium dalam mendata aset lab serta mengelola transaksi peminjaman barang secara digital, menggantikan pencatatan manual di buku besar."
         )
         
-        # Buat objek dialog secara eksplisit agar bisa ditempel properti tema
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("About Application")
         msg_box.setText(about_text)
         msg_box.setIcon(QMessageBox.Information)
         
-        # Samakan properti tema dengan status window saat ini
         state = "dark" if self.is_dark_mode else "light"
         msg_box.setProperty("theme", state)
         
@@ -138,29 +129,24 @@ class MainWindow(QMainWindow):
         self.setProperty("theme", state)
         self.statusBar().setProperty("theme", state)
         
-        # Tambahkan ini agar label status bar baru juga ikut memperbarui temanya
         if hasattr(self, 'status_label'):
             self.status_label.setProperty("theme", state)
 
-        # Load Global Styles
         try:
             with open("assets/global.qss", "r") as f:
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             pass
 
-        # FORCE REFRESH
         self.style().unpolish(self)
         self.style().polish(self)
         self.statusBar().style().unpolish(self.statusBar())
         self.statusBar().style().polish(self.statusBar())
         
-        # Refresh style untuk label status bar baru
         if hasattr(self, 'status_label'):
             self.status_label.style().unpolish(self.status_label)
             self.status_label.style().polish(self.status_label)
 
-        # Trigger Theme Update di masing-masing page
         self.page_dashboard.set_theme(state)
         self.page_inventory.set_theme(state)
         self.page_borrow.set_theme(state)

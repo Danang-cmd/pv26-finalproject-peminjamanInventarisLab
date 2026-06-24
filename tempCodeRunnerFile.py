@@ -18,32 +18,37 @@ class MainWindow(QMainWindow):
         self.is_dark_mode = False
         self.setup_ui()
         self.apply_theme()
-        
-        self.insert_dummy_data()
 
     def setup_ui(self):
         menubar = self.menuBar()
 
-        # --- MENU FILE & EXIT ---
+        # --- MENU FILE ---
         file_menu = menubar.addMenu("File")
         
         toggle_theme_action = QAction("Toggle Dark/Light Mode", self)
         toggle_theme_action.triggered.connect(self.toggle_theme)
         file_menu.addAction(toggle_theme_action)
 
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-        # --- MENU HELP (Baru) ---
+        # --- MENU HELP (Sekarang Berisi Dropdown) ---
         help_menu = menubar.addMenu("Help")
-        about_action = QAction("About", self)
-        about_action.triggered.connect(self.show_about) # Menghubungkan klik dengan fungsi
+        
+        # Membuat item "About" di dalam menu Help
+        about_action = QAction("About Application", self)
+        about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
-        # --- STATUS BAR (Update Nama & NIM) ---
-        # Mengganti teks bawaan menjadi nama anggota kelompok
-        self.statusBar().showMessage("Danang Adiwijaya (F1D02310044) | Wimar (F1D024000) | Bang Klisman (F1D022000)")
+        # --- TOMBOL EXIT (SEJAJAR DI MENU BAR) ---
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        menubar.addAction(exit_action)
+
+        # --- STATUS BAR (POJOK KANAN BAWAH) ---
+        # Kita buat QLabel khusus agar teks bisa diatur posisinya dan di-style lewat QSS
+        self.status_label = QLabel("Danang Adiwijaya (F1D02310044) | Wimar Aryasmarta Prakasa (F1D02410026) | Mohammad Klisman Reynaldi (F1D022063)")
+        self.status_label.setObjectName("StatusLabel")
+        
+        # permanent widget otomatis meletakkan widget di pojok kanan bawah
+        self.statusBar().addPermanentWidget(self.status_label)
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -98,12 +103,20 @@ class MainWindow(QMainWindow):
         """Menampilkan dialog informasi anggota kelompok saat menu Help -> About diklik"""
         about_text = (
             "Sistem Peminjaman Inventaris Lab\n\n"
-            "Anggota Kelompok:\n"
-            "1. Danang Adiwijaya (F1D02310044)\n"
-            "2. Wimar (F1D024000)\n"
-            "3. Bang Klisman (F1D022000)"
+            "Aplikasi ini adalah sistem manajemen internal berbasis antarmuka grafis (GUI) yang dirancang khusus untuk mempermudah tugas seorang petugas laboratorium dalam mendata aset lab serta mengelola transaksi peminjaman barang secara digital, menggantikan pencatatan manual di buku besar."
         )
-        QMessageBox.information(self, "About Application", about_text)
+        
+        # Buat objek dialog secara eksplisit agar bisa ditempel properti tema
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("About Application")
+        msg_box.setText(about_text)
+        msg_box.setIcon(QMessageBox.Information)
+        
+        # Samakan properti tema dengan status window saat ini
+        state = "dark" if self.is_dark_mode else "light"
+        msg_box.setProperty("theme", state)
+        
+        msg_box.exec()
 
     def switch_page(self, index, load_func=None):
         self.pages.setCurrentIndex(index)
@@ -123,37 +136,34 @@ class MainWindow(QMainWindow):
     def apply_theme(self):
         state = "dark" if self.is_dark_mode else "light"
         self.setProperty("theme", state)
-        
-        # Tambahkan baris ini agar QStatusBar juga tahu kalau temanya berubah
         self.statusBar().setProperty("theme", state)
+        
+        # Tambahkan ini agar label status bar baru juga ikut memperbarui temanya
+        if hasattr(self, 'status_label'):
+            self.status_label.setProperty("theme", state)
 
-        # Load Global Styles (Sidebar, Inputs, Buttons, Table)
+        # Load Global Styles
         try:
             with open("assets/global.qss", "r") as f:
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             pass
 
-        # FORCE REFRESH: Memaksa gaya MainWindow dan StatusBar untuk di-render ulang
+        # FORCE REFRESH
         self.style().unpolish(self)
         self.style().polish(self)
         self.statusBar().style().unpolish(self.statusBar())
         self.statusBar().style().polish(self.statusBar())
+        
+        # Refresh style untuk label status bar baru
+        if hasattr(self, 'status_label'):
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
 
         # Trigger Theme Update di masing-masing page
         self.page_dashboard.set_theme(state)
         self.page_inventory.set_theme(state)
         self.page_borrow.set_theme(state)
-
-    def insert_dummy_data(self):
-        conn = database.connect_db()
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM items")
-        if cur.fetchone()[0] == 0:
-            cur.execute("INSERT INTO items (kode_alat, nama_alat, kategori, stok_total, stok_tersedia) VALUES ('ELK-01', 'Osiloskop', 'Elektronik', 5, 5)")
-            cur.execute("INSERT INTO items (kode_alat, nama_alat, kategori, stok_total, stok_tersedia) VALUES ('GLS-01', 'Gelas Ukur 50ml', 'Gelas Kaca', 20, 20)")
-            conn.commit()
-        conn.close()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
