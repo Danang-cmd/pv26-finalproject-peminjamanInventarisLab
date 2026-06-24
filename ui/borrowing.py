@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrinter
-import database.database as database
+from models.borrowing_model import BorrowingModel
 
 # ──────────────────────────────────────────────
 #  HELPER FUNCTION: Pop-up Pesan Sesuai Tema
@@ -145,12 +145,9 @@ class BorrowDialog(QDialog):
         self.combo_alat.currentIndexChanged.connect(self._update_max_stok)
 
     def load_items(self):
-        conn = database.connect_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, nama_alat, stok_tersedia FROM items WHERE stok_tersedia > 0")
-        for row in cursor.fetchall():
+        rows = BorrowingModel.get_available_items()
+        for row in rows:
             self.combo_alat.addItem(f"{row[1]} (Stok: {row[2]})", row[0])
-        conn.close()
         self._update_max_stok()
 
     def _update_max_stok(self):
@@ -169,17 +166,14 @@ class BorrowDialog(QDialog):
         self.date_pinjam.setDate(QDate.fromString(data["tgl_pinjam"], "yyyy-MM-dd"))
         self.date_kembali.setDate(QDate.fromString(data["tgl_kembali"], "yyyy-MM-dd"))
         self.combo_status.setCurrentText(data["status"])
-        
+
         self.combo_alat.setEnabled(False)
-        self.input_jumlah.setEnabled(False)  # Kuantitas dikunci saat edit agar sinkronisasi stok lebih aman
-        
-        conn = database.connect_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, nama_alat FROM items WHERE id = ?", (data["item_id"],))
-        item = cursor.fetchone()
+        self.input_jumlah.setEnabled(False)  
+
+        # Gunakan Model untuk _populate
+        item = BorrowingModel.get_item_by_id(data["item_id"])
         if item:
             self.combo_alat.addItem(f"{item[1]}", item[0])
-        conn.close()
 
     def validate_and_save(self):
         if not self.input_nama.text().strip() or not self.input_nim.text().strip():
@@ -294,48 +288,36 @@ class BorrowingPage(QWidget):
         layout.addWidget(self.lbl_count)
 
     def load_data(self):
-        conn = database.connect_db()
-        cur = conn.cursor()
+        # Ambil data dari model
+        rows = BorrowingModel.get_all()
 
-        query = """
-        SELECT b.id, b.nama_mhs, b.nim_mhs, i.nama_alat, b.jumlah,
-               b.tgl_pinjam, b.tgl_kembali, b.status, b.item_id
-        FROM borrowings b
-        JOIN items i ON b.item_id = i.id
-        ORDER BY b.id DESC
-        """
-        cur.execute(query)
-        rows = cur.fetchall()
-        conn.close()
-        
         self.table_borrow.setUpdatesEnabled(False)
         self.table_borrow.setRowCount(len(rows))
-
-        current_date = QDate.currentDate() 
+        current_date = QDate.currentDate()
+        
         for row_idx, row_data in enumerate(rows):
             status_db = row_data[7]
             tgl_kembali_str = row_data[6]
             tgl_kembali_qd = QDate.fromString(tgl_kembali_str, "yyyy-MM-dd")
-            
+
             status_display = status_db
             if status_db == "Dipinjam" and tgl_kembali_qd < current_date:
                 status_display = "Terlambat"
-                
+
             for col_idx, col_data in enumerate(row_data):
                 text_to_show = status_display if col_idx == 7 else str(col_data)
                 item = QTableWidgetItem(text_to_show)
-                
-                if col_idx in [1, 3]:  
+
+                if col_idx in [1, 3]:
                     item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 else:
                     item.setTextAlignment(Qt.AlignCenter)
                 self.table_borrow.setItem(row_idx, col_idx, item)
-
+                
             if status_display == "Dikembalikan":
                 for col_idx in range(self.table_borrow.columnCount()):
                     cell = self.table_borrow.item(row_idx, col_idx)
-                    if cell:
-                        cell.setForeground(Qt.darkGreen)
+                    if cell: cell.setForeground(Qt.darkGreen)
             elif status_display == "Terlambat":
                 for col_idx in range(self.table_borrow.columnCount()):
                     cell = self.table_borrow.item(row_idx, col_idx)
@@ -344,12 +326,11 @@ class BorrowingPage(QWidget):
                         font = cell.font()
                         font.setBold(True)
                         cell.setFont(font)
-            else: 
+            else:
                 for col_idx in range(self.table_borrow.columnCount()):
                     cell = self.table_borrow.item(row_idx, col_idx)
-                    if cell:
-                        cell.setForeground(Qt.blue)
-                        
+                    if cell: cell.setForeground(Qt.blue)
+
         self.table_borrow.setUpdatesEnabled(True)
         self.lbl_count.setText(f"{len(rows)} peminjaman ditemukan")
         self.filter_data()
@@ -398,72 +379,46 @@ class BorrowingPage(QWidget):
         dialog = BorrowDialog(self, is_dark=self.is_dark_mode)
         if dialog.exec():
             data = dialog.get_data()
-            conn = database.connect_db()
-            cur = conn.cursor()
-
-            cur.execute(
-                "INSERT INTO borrowings (nama_mhs, nim_mhs, item_id, jumlah, tgl_pinjam, tgl_kembali, status) VALUES (?, ?, ?, ?, ?, ?, 'Dipinjam')",
-                (data["nama_mhs"], data["nim_mhs"], data["item_id"], data["jumlah"], data["tgl_pinjam"], data["tgl_kembali"])
-            )
-            cur.execute("UPDATE items SET stok_tersedia = stok_tersedia - ? WHERE id = ?", (data["jumlah"], data["item_id"]))
-
-            conn.commit()
-            conn.close()
-            self.load_data()
-            _show_message(self, "info", "Sukses", "Data peminjaman berhasil disimpan!")
+            try:
+                BorrowingModel.add(data)
+                self.load_data()
+                _show_message(self, "info", "Sukses", "Data peminjaman berhasil disimpan!")
+            except Exception as e:
+                _show_message(self, "warning", "Error", f"Terjadi kesalahan saat menyimpan: {e}")
 
     def edit_borrow(self):
         selected = self._get_selected_item()
         if not selected: return
-
+        
         dialog = BorrowDialog(self, is_dark=self.is_dark_mode, borrow_data=selected)
         if dialog.exec():
             data = dialog.get_data()
-            conn = database.connect_db()
-            cur = conn.cursor()
-            cur.execute("UPDATE borrowings SET nama_mhs=?, nim_mhs=?, tgl_pinjam=?, tgl_kembali=?, status=? WHERE id=?",
-                        (data["nama_mhs"], data["nim_mhs"], data["tgl_pinjam"], data["tgl_kembali"], data["status"], selected["id"]))
-            
-            jumlah_alat = int(selected["jumlah"])
-
-            if selected["status"] == "Dipinjam" and data["status"] == "Dikembalikan":
-                cur.execute("UPDATE items SET stok_tersedia = stok_tersedia + ? WHERE id = ?", (jumlah_alat, selected["item_id"]))
-            elif selected["status"] == "Dikembalikan" and data["status"] == "Dipinjam":
-                cur.execute("SELECT stok_tersedia FROM items WHERE id = ?", (selected["item_id"],))
-                stok = cur.fetchone()[0]
-                if stok >= jumlah_alat:
-                    cur.execute("UPDATE items SET stok_tersedia = stok_tersedia - ? WHERE id = ?", (jumlah_alat, selected["item_id"]))
-                else:
-                    _show_message(self, "warning", "Error", "Stok alat sudah tidak mencukupi untuk dipinjam kembali.")
-                    conn.rollback()
-                    conn.close()
-                    return
-
-            conn.commit()
-            conn.close()
-            self.load_data()
-            _show_message(self, "info", "Sukses", "Data peminjaman berhasil diperbarui!")
+            try:
+                BorrowingModel.update(selected["id"], data, selected)
+                self.load_data()
+                _show_message(self, "info", "Sukses", "Data peminjaman berhasil diperbarui!")
+            except ValueError as ve:
+                _show_message(self, "warning", "Error", str(ve))
+            except Exception as e:
+                _show_message(self, "warning", "Error", f"Terjadi kesalahan: {e}")
 
     def delete_borrow(self):
         selected = self._get_selected_item()
         if not selected: return
-        
+
         konfirmasi = _show_message(
             self, "question", "Konfirmasi Hapus",
             f"Yakin ingin menghapus data peminjaman oleh {selected['nama_mhs']}?",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         if konfirmasi != QMessageBox.Yes: return
-
-        conn = database.connect_db()
-        cur = conn.cursor()
-        if selected["status"] == "Dipinjam":
-            cur.execute("UPDATE items SET stok_tersedia = stok_tersedia + ? WHERE id = ?", (int(selected["jumlah"]), selected["item_id"]))
-        cur.execute("DELETE FROM borrowings WHERE id=?", (selected["id"],))
-        conn.commit()
-        conn.close()
-        self.load_data()
-        _show_message(self, "info", "Sukses", "Data peminjaman berhasil dihapus!")
+        
+        try:
+            BorrowingModel.delete(selected["id"], selected)
+            self.load_data()
+            _show_message(self, "info", "Sukses", "Data peminjaman berhasil dihapus!")
+        except Exception as e:
+            _show_message(self, "warning", "Error", f"Gagal menghapus data: {e}")
 
     def export_pdf(self):
         path, _ = QFileDialog.getSaveFileName(self, "Simpan PDF", "Laporan_Peminjaman.pdf", "PDF Files (*.pdf)")
