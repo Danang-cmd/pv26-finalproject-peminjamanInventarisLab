@@ -105,7 +105,6 @@ class BorrowDialog(QDialog):
         self.input_nim = QLineEdit()
         
         self.combo_alat = QComboBox()
-        self.combo_alat.setStyleSheet("QComboBox QAbstractItemView { border: 1px solid #475569; }")
         
         self.input_jumlah = QSpinBox()
         self.input_jumlah.setMinimum(1)

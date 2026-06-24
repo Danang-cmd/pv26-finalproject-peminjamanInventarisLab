@@ -62,7 +62,7 @@ QWidget#MainContent {
 }
 
 /* Form Controls - Light */
-QLineEdit, QComboBox, QDateEdit {
+QLineEdit, QComboBox, QDateEdit, QSpinBox {
     background-color: #ffffff;
     color: #0f172a;
     padding: 8px 12px;
@@ -71,8 +71,16 @@ QLineEdit, QComboBox, QDateEdit {
     font-size: 13px;
 }
 
-QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus {
     border: 1px solid #3b82f6;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    selection-background-color: #e0f2fe;
+    selection-color: #0369a1;
 }
 
 /* Buttons - Light */
@@ -227,7 +235,8 @@ QWidget[theme="dark"] QWidget#MainContent {
 /* Form Controls - Dark */
 QWidget[theme="dark"] QLineEdit,
 QWidget[theme="dark"] QComboBox,
-QWidget[theme="dark"] QDateEdit {
+QWidget[theme="dark"] QDateEdit,
+QWidget[theme="dark"] QSpinBox {
     background-color: #1e293b;
     color: #f8fafc;
     border: 1px solid #475569;
@@ -235,8 +244,17 @@ QWidget[theme="dark"] QDateEdit {
 
 QWidget[theme="dark"] QLineEdit:focus,
 QWidget[theme="dark"] QComboBox:focus,
-QWidget[theme="dark"] QDateEdit:focus {
+QWidget[theme="dark"] QDateEdit:focus,
+QWidget[theme="dark"] QSpinBox:focus {
     border: 1px solid #3b82f6;
+}
+
+QWidget[theme="dark"] QComboBox QAbstractItemView {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    selection-background-color: #334155;
+    selection-color: #f8fafc;
 }
 
 /* Buttons - Dark */
