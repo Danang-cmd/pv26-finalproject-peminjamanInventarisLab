@@ -238,7 +238,9 @@ pv26-finalproject-peminjamanInventarisLab/
 │   └── borrowing.py           # Halaman Peminjaman
 │
 ├── models/
-│   └── dashboard_model.py     # Model data untuk Dashboard
+│   ├── dashboard_model.py     # Model data untuk Dashboard
+│   ├── item_model.py          # Model data untuk Inventory
+│   └── borrowing_model.py     # Model data untuk Borrowing
 │
 ├── assets/
 │   ├── global.qss             # Stylesheet global (dark/light theme)
